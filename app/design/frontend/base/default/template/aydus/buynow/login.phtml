@@ -1,0 +1,45 @@
+<?php
+
+/**
+ * BuyNow login
+ * 
+ * @category   Aydus
+ * @package    Aydus_BuyNow
+ * @author     Aydus Consulting <davidt@aydus.com>
+ */
+?>
+<form action="<?php echo $this->getLoginUrl() ?>" method="post" id="buynow-login-form" class="scaffold-form">
+    <?php echo $this->getBlockHtml('formkey'); ?>
+    <ul class="messages hidden">
+        <li class="error-msg">
+            <ul><li><span></span></li></ul>
+        </li>
+    </ul>        
+    <div class="content fieldset">
+        <p class="form-instructions"><?php echo $this->__('If you have an account with us, please log in.') ?></p>
+        <p class="required"><?php echo $this->__('* Required Fields') ?></p>
+        <ul class="form-list">
+            <li>
+                <label for="email" class="required"><em>*</em><?php echo $this->__('Email Address') ?></label>
+                <div class="input-box">
+                    <input type="email" autocapitalize="off" autocorrect="off" spellcheck="false" name="login[username]" value="<?php echo $this->escapeHtml($this->getUsername()) ?>" id="email" class="input-text required-entry validate-email" title="<?php echo $this->__('Email Address') ?>" />
+                </div>
+            </li>
+            <li>
+                <label for="pass" class="required"><em>*</em><?php echo $this->__('Password') ?></label>
+                <div class="input-box">
+                    <input type="password" name="login[password]" class="input-text required-entry validate-password" id="pass" title="<?php echo $this->__('Password') ?>" />
+                </div>
+            </li>
+        </ul>
+    </div>
+    <div class="buttons-set hidden">
+        <button type="submit" class="button" title="<?php echo $this->__('Login') ?>" name="send" id="buynow-login-button"><span><span><?php echo $this->__('Login') ?></span></span></button>
+    </div>
+</form>
+
+<script>
+//<![CDATA[
+    var buyNowLoginForm = new VarienForm('buynow-login-form', true);
+//]]>
+</script>

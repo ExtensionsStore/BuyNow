@@ -1,0 +1,26 @@
+<?php
+
+/**
+ * BuyNow button
+ * 
+ * @category   Aydus
+ * @package    Aydus_BuyNow
+ * @author     Aydus Consulting <davidt@aydus.com>
+ */
+?>
+
+<button type="button" title="Buy Now" id="buynow-button" class="button btn-cart" onclick="">
+    <span><span>Buy Now</span></span>
+</button>
+
+<script>
+    
+    var buyNowOptions = {
+        loggedIn : <?php echo (Mage::getSingleton('customer/session')->isLoggedIn()) ? 'true' : 'false' ?>,
+        loginLabel : '<?php echo $this->__('Login') ?>',
+        checkoutLabel : '<?php echo $this->__('Checkout') ?>',
+        addToCartUrl : '<?php echo $this->getUrl('buynow/index/addtocart') ?>',
+        progressBackground : "background: white url(<?php echo $this->getSkinUrl('aydus/buynow/buynow-progress.gif') ?>) no-repeat center center;"
+    };
+
+</script>

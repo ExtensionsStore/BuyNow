@@ -1,0 +1,7 @@
+app/code/community/Aydus/BuyNow/                              app/code/community/Aydus/BuyNow/
+app/design/frontend/base/default/layout/aydus/buynow.xml      app/design/frontend/base/default/layout/aydus/buynow.xml
+app/design/frontend/base/default/template/aydus/buynow/       app/design/frontend/base/default/template/aydus/buynow/
+app/etc/modules/Aydus_BuyNow.xml                              app/etc/modules/Aydus_BuyNow.xml
+skin/frontend/base/default/aydus/buynow/                      skin/frontend/base/default/aydus/buynow/
+
+@shell rm -rf $PROJECT/var/cache/*

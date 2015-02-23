@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+/**
+ * CustomCase adminhtml layout
+ * 
+ * @category   Aydus
+ * @package    Aydus_BuyNow
+ * @author     Aydus Consulting <davidt@aydus.com>
+ */
+-->
+<layout>
+
+    <catalog_product_view>
+        <reference name="head">
+            <action method="addItem">
+                <type>skin_css</type>
+                <script>aydus/buynow/buynow.css</script>
+            </action>
+            <action method="addItem">
+                <type>skin_js</type>
+                <script>aydus/buynow/buynow.js</script>
+            </action>
+        </reference>    
+        <reference name="product.info.addtocart">
+            <block type="aydus_buynow/button" name="product.info.addtocart.buynow.button" template="aydus/buynow/button.phtml">
+            </block>
+        </reference>   
+        <reference name="before_body_end">
+            <block type="aydus_buynow/form" name="buynow.popup" template="aydus/buynow/popup.phtml">
+                <block type="aydus_buynow/form" name="buynow.login" template="aydus/buynow/login.phtml" />
+                <block type="aydus_buynow/form" name="buynow.checkout" template="aydus/buynow/checkout.phtml" />
+            </block>
+        </reference>                
+    </catalog_product_view>
+
+</layout>

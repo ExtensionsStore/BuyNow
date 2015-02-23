@@ -1,0 +1,47 @@
+<?php
+
+/**
+ * BuyNow checkout
+ * 
+ * @category   Aydus
+ * @package    Aydus_BuyNow
+ * @author     Aydus Consulting <davidt@aydus.com>
+ */
+?>
+<form action="<?php echo $this->getCheckoutUrl() ?>" method="post" id="buynow-checkout-form" class="scaffold-form">
+    <?php echo $this->getBlockHtml('formkey'); ?>
+    <ul class="messages hidden">
+        <li class="error-msg">
+            <ul><li><span></span></li></ul>
+        </li>
+    </ul>        
+    <div class="content fieldset">
+        <p class="form-instructions"><?php echo $this->getCheckoutFormInstructions() ?></p>
+        <p class="required"><?php echo $this->__('* Required Fields') ?></p>
+        <ul class="form-list">
+            <?php if ($this->isShippingRequired()): ?>
+            <li>
+                <label for="shipping_address_id" class="required"><em>*</em><?php echo $this->__('Shipping Address') ?></label>
+                <div class="input-box">
+                    <?php echo $this->getAddressesHtmlSelect('shipping') ?>
+                </div>
+            </li>
+            <?php endif ?>
+            <li>
+                <label for="payment[ba_agreement_id]" class="required"><em>*</em><?php echo $this->__('Billing Agreement') ?></label>
+                <div class="input-box">
+                    <?php echo $this->getBillingAgreementsHtmlSelect() ?>
+                </div>
+            </li>
+        </ul>
+    </div>
+    <div class="buttons-set hidden">
+        <button type="submit" class="button" title="<?php echo $this->__('Checkout') ?>" name="send" id="buynow-checkout-button"><span><span><?php echo $this->__('Checkout') ?></span></span></button>
+    </div>
+</form>    
+
+<script>
+//<![CDATA[
+    var buyNowCheckoutForm = new VarienForm('buynow-checkout-form', true);
+//]]>
+</script>

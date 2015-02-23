@@ -1,0 +1,11 @@
+/**
+ * BuyNow css
+ * 
+ * @category   Aydus
+ * @package    Aydus_BuyNow
+ * @author     Aydus Consulting <davidt@aydus.com>
+ */
+
+#buynow-login, #buynow-checkout {
+    display: none;
+}

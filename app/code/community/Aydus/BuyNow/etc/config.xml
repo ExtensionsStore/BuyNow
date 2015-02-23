@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * BuyNow module config
+ *
+ * @category   Aydus
+ * @package    Aydus_BuyNow
+ * @author     Aydus Consulting <davidt@aydus.com>
+ */
+-->
+<config>
+    <modules>
+        <Aydus_BuyNow>
+            <version>0.1.0</version>
+        </Aydus_BuyNow>
+    </modules>
+    <frontend>
+        <routers>
+            <aydus_buynow>
+                <use>standard</use>
+                <args>
+                    <module>Aydus_BuyNow</module>
+                    <frontName>buynow</frontName>
+                </args>
+            </aydus_buynow>
+        </routers>        
+        <layout>
+            <updates>
+                <aydus_buynow>
+                    <file>aydus/buynow.xml</file>
+                </aydus_buynow>
+            </updates>
+        </layout>        
+    </frontend>
+    <global>
+        <blocks>
+            <aydus_buynow>
+                <class>Aydus_BuyNow_Block</class>
+            </aydus_buynow>            
+        </blocks>
+        <helpers>
+            <aydus_buynow>
+                <class>Aydus_BuyNow_Helper</class>
+            </aydus_buynow>
+        </helpers>
+        <models>
+            <aydus_buynow>
+                <class>Aydus_BuyNow_Model</class>
+            </aydus_buynow>
+        </models>
+    </global>                       
+</config>
