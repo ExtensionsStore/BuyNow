@@ -9,7 +9,7 @@
  */
 ?>
 <form action="<?php echo $this->getCheckoutUrl() ?>" method="post" id="buynow-checkout-form" class="scaffold-form">
-    <?php echo $this->getBlockHtml('formkey'); ?>
+    <?php echo $this->getFormKeyHtml() ?>
     <ul class="messages hidden">
         <li class="error-msg">
             <ul><li><span></span></li></ul>

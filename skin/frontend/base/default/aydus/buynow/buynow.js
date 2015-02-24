@@ -131,10 +131,10 @@ var BuyNow = function ($)
 
             $.post(url, data, function (res) {
 
+                progress('#buynow-checkout .content', false);
                 if (!res.error) {
 
                     checkoutSuccess(res.data);
-                    progress('#buynow-checkout .content', false);
 
                 } else {
 

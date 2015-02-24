@@ -30,6 +30,15 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
         return Mage::getSingleton('customer/session')->isLoggedIn();
     }    
     
+    public function getFormKeyHtml()
+    {
+        if ($this->getBlockHtml('formkey')){
+            return $this->getBlockHtml('formkey');
+        } else {
+            return '<input type="hidden" name="form_key" value="'.Mage::getSingleton('core/session')->getFormKey().'"/>';
+        }
+    }
+    
     /**
      * Retrieve checkout session model
      *
