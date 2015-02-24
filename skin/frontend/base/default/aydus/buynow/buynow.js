@@ -9,16 +9,14 @@
 var BuyNow = function ($)
 {
     var loggedin;
-    var loginLabel;
-    var checkoutLabel;
-    var progressBackground;
-    var addToCartUrl;
-
+    var addedtocart = false;
     var button;
-    var dialog;
-    var varienForm;
-    var form;
+    var addToCartUrl;
+    var registerUrl;
+    var onepageUrl;
 
+    //dialog options
+    var dialog;
     var options = {
         autoOpen: false,
         height: 'auto',
@@ -36,15 +34,31 @@ var BuyNow = function ($)
             fluidDialog();
         }
     };
+    //form in dialog
+    var varienForm;
+    var form;
+    //dialog submit button labels
+    var loginLabel;
+    var checkoutLabel;
+    var registerLabel;
+    //inline style for progress
+    var progressBackground;
 
+    //not logged in button click
     var login = function ()
     {
         varienForm = buyNowLoginForm;
         form = varienForm.form;
+        options.buttons[registerLabel] = register;
         options.buttons[loginLabel] = loginSubmit;
         dialog = $("#buynow-login").dialog(options);
         dialog.dialog("open");
     };
+    
+    var register = function()
+    {
+    	window.location.href = registerUrl;
+    }
 
     var loginSubmit = function ()
     {
@@ -65,6 +79,8 @@ var BuyNow = function ($)
                 } else {
 
                     $('#buynow-login-form .messages').show().find('span').text(res.data);
+                    progress('#buynow-login .content', false);
+
                 }
 
             });
@@ -81,18 +97,27 @@ var BuyNow = function ($)
 
         dialog.dialog("close");
         delete options.buttons[loginLabel];
-        checkout();
+        delete options.buttons[registerLabel];
+        addToCart(checkout);
     };
 
+    //logged in, checkout button click
     var checkout = function ()
     {
-        varienForm = buyNowCheckoutForm;
-        form = varienForm.form;
+    	if (typeof buyNowCheckoutForm != 'undefined'){
+    		
+            varienForm = buyNowCheckoutForm;
+            form = varienForm.form;
 
-        checkoutLabel = $('#buynow-checkout-button').attr('title');
-        options.buttons[checkoutLabel] = checkoutSubmit;
-        dialog = $("#buynow-checkout").dialog(options);
-        dialog.dialog("open");
+            checkoutLabel = $('#buynow-checkout-button').attr('title');
+            options.buttons[checkoutLabel] = checkoutSubmit;
+            dialog = $("#buynow-checkout").dialog(options);
+            dialog.dialog("open");
+    		
+    	} else {
+    		
+    		window.location.href = onepageUrl;
+    	}
     };
 
     var checkoutSubmit = function ()
@@ -127,35 +152,51 @@ var BuyNow = function ($)
 
     };
 
+    //on button click, add item to cart if NOT already in cart
     var addToCart = function (callback)
     {
-        if (productAddToCartForm.validator.validate()){
+    	if (!addedtocart){
+    		
+            if (productAddToCartForm.validator.validate()){
+            	
+                dialog = $("#buynow-popup").dialog(options);
+                dialog.dialog("open");
+            	
+                var $form = $('#product_addtocart_form');
+                var data = $form.serialize();
+
+                $.post(addToCartUrl, data, function (res) {
+                	dialog.dialog("close");
+                	
+                    if (!res.error) {
+
+                    	addedtocart = true;
+                        $('#buynow-checkout').html(res.data.checkout);
+                        updateHeader(res.data.header);  
+                        
+                        callback();
+
+                    } else {
+
+                        $('#buynow-checkout-form .messages').show().find('span').text(res.data);
+                    }
+
+                });      
+                
+            }  
             
-            var form = productAddToCartForm.form;
-            var data = $(form).serialize();
-
-            $.post(addToCartUrl, data, function (res) {
-                if (!res.error) {
-
-                    $('#buynow-checkout').html(res.data.checkout);
-                    updateHeader(res.data.header);  
-                    
-                    callback();
-
-                } else {
-
-                    $('#buynow-checkout-form .messages').show().find('span').text(res.data);
-                }
-
-            });            
-        }
+    	} else {
+    		
+            callback();
+    	}
 
     };
 
+    //on button click, add to cart if not already in cart, then open dialog
     var buyNowButtonClick = function (e)
     {
         if (!loggedin) {
-            addToCart(login);
+            login();
         } else {
             addToCart(checkout);
         }
@@ -207,6 +248,7 @@ var BuyNow = function ($)
     var progress = function (selector, show, position)
     {
         var $container = $(selector);
+        
         if (show) {
 
             $container.attr('style', progressBackground);
@@ -227,19 +269,22 @@ var BuyNow = function ($)
 
     };
 
+    //dim the container when in progress
     var dim = function ($container, dim)
     {
         $container.children().each(function () {
+        	
             if (dim) {
                 $(this).css('opacity', '.3');
             } else {
                 $(this).css('opacity', '1');
-
             }
+            
         });
 
     };
 
+    //@see http://stackoverflow.com/questions/16471890/responsive-jquery-ui-dialog-and-a-fix-for-maxwidth-bug
     var fluidDialog = function ()
     {
         var $visible = $(".ui-dialog:visible");
@@ -261,11 +306,23 @@ var BuyNow = function ($)
                 //reposition dialog
                 dialog.option("position", dialog.options.position);
             }
+            
         });
 
     };
+    
+    var log = function(message)
+    {
+    	if (typeof console == 'object'){
+    		console.log(message);
+    	} else {
+    		alert(message);
+    	}
+    	
+    };
 
     return {
+    	
         init: function ()
         {
             $(function () {
@@ -278,6 +335,9 @@ var BuyNow = function ($)
                     loginLabel = buyNowOptions.loginLabel;
                     progressBackground = buyNowOptions.progressBackground;
                     addToCartUrl = buyNowOptions.addToCartUrl;
+                    registerLabel = buyNowOptions.registerLabel;
+                    registerUrl = buyNowOptions.registerUrl;
+                    onepageUrl = buyNowOptions.onepageUrl;
 
                     // on window resize run function
                     $(window).resize(function () {
@@ -292,6 +352,8 @@ var BuyNow = function ($)
                     var $buynowButton = $('#buynow-button');
                     $buynowButton.click(buyNowButtonClick);
                     button = $buynowButton[0];
+                } else {
+                	log('buyNowOptions not set.');
                 }
 
             });

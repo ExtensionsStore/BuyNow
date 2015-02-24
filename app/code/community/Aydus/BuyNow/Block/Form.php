@@ -65,7 +65,7 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
     {
         if ($this->isShippingRequired()){
 
-            return $this->__('Select your shipping address and billing agreement.');
+            return $this->__('Select your shipping and billing.');
             
         } else {
             
@@ -118,7 +118,6 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
                 ->setName($type.'_address_id')
                 ->setId($type.'-address-select')
                 ->setClass('required-entry address-select')
-                //->setExtraParams('onchange="'.$type.'.newAddress(!this.value)"')
                 ->setValue($addressId)
                 ->setOptions($options);
 
@@ -129,11 +128,61 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
         return '';
     }    
     
+    //'shipping_method', 'shipping_method', 'shipping'
+    
+    public function getShippingMethodsHtmlSelect($_methods = null, $fieldId = 'shipping_method', $fieldName = 'shipping_method', $fieldClass = 'shipping'){
+        
+        if (!$_methods){
+            $_methods = Mage::getSingleton('shipping/config')->getActiveCarriers();
+        }
+        
+        $_shippingHtml = '<select name="' . $fieldName . '" id="' . $fieldId . '" class="' . $fieldClass . '">';
+        foreach($_methods as $_carrierCode => $_carrier){
+            if($_method = $_carrier->getAllowedMethods())  {
+                if(!$_title = Mage::getStoreConfig('carriers/' . $_carrierCode . ' /title')) {
+                    $_title = $_carrierCode;
+                }
+                $_shippingHtml .= '<optgroup label="' . $_title . '">';
+                foreach($_method as $_mcode => $_m){
+                    $_code = $_carrierCode . '_' . $_mcode;
+                    $_shippingHtml .= '<option value="' . $_code . '">' . $_m . '</option>';
+                }
+                $_shippingHtml .= '</optgroup>';
+            }
+        }
+        $_shippingHtml .= '</select>';
+        
+        return $_shippingHtml;
+    }
+    
+   /* public function getShippingMethodsHtmlSelect()
+    {
+        $select = $this->getLayout()->createBlock('core/html_select')
+        ->setName($type.'_address_id')
+        ->setId($type.'-address-select')
+        ->setClass('required-entry address-select')
+        ->setValue($addressId)
+        ->setOptions($options);
+        
+        $select->addOption('', Mage::helper('checkout')->__('New Address'));
+        
+        return $select->getHtml();        
+    }*/
+    
+    public function hasBillingAgreement()
+    {
+        $collection = Mage::getModel('sales/billing_agreement')->getAvailableCustomerBillingAgreements(
+                $this->getCustomer()->getId()
+        );
+
+        return $collection->getSize();
+    }
+    
     public function getBillingAgreementsHtmlSelect() 
     {
         $options = array();
         $collection = Mage::getModel('sales/billing_agreement')->getAvailableCustomerBillingAgreements(
-            $this->getCustomer()->getId()
+                $this->getCustomer()->getId()
         );
 
         foreach ($collection as $item) {

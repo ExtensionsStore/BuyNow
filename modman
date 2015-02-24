@@ -4,4 +4,3 @@ app/design/frontend/base/default/template/aydus/buynow/       app/design/fronten
 app/etc/modules/Aydus_BuyNow.xml                              app/etc/modules/Aydus_BuyNow.xml
 skin/frontend/base/default/aydus/buynow/                      skin/frontend/base/default/aydus/buynow/
 
-@shell rm -rf $PROJECT/var/cache/*

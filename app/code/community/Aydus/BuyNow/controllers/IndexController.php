@@ -10,6 +10,11 @@
 
 class Aydus_BuyNow_IndexController extends Mage_Core_Controller_Front_Action
 {
+    
+    protected function _getModel()
+    {
+        return Mage::getSingleton('aydus_buynow/buynow');
+    }
 
     public function loginAction()
     {
@@ -23,31 +28,16 @@ class Aydus_BuyNow_IndexController extends Mage_Core_Controller_Front_Action
             
             $username = $login['username'];
             $password = $login['password'];
-            $session = Mage::getSingleton('customer/session');
-
-            $websiteId = Mage::app()->getStore()->getWebsiteId();
-            $customer = Mage::getModel('customer/customer')->setWebsiteId($websiteId);
             
-            try {
+            $result = $this->_getModel()->login($username, $password);
+            
+            if (!$result['error']){
                 
-                $customer->authenticate($username, $password);
-
-                $session->setCustomerAsLoggedIn($customer);
-                $session->renewSession();
-               
                 $header = $this->_getHeader();
                 $checkoutFormHtml = $this->_getCheckoutForm();
-
-                $result['error'] = false;
-                $result['data'] = array(
-                    'header' => $header,
-                    'checkout' => $checkoutFormHtml,
-                );
-
-            } catch (Exception $ex) {
-                
-                $result['error'] = true;
-                $result['data'] = $ex->getMessage();
+                    
+                $result['data']['header'] = $header;
+                $result['data']['checkout'] = $checkoutFormHtml;                
             }
 
         } else {
@@ -63,59 +53,25 @@ class Aydus_BuyNow_IndexController extends Mage_Core_Controller_Front_Action
     
     public function addtocartAction()
     {
-        if ($this->_validateFormKey()) {
+        $result = array();
         
-            $result = array();
+        if ($this->_validateFormKey()) {
 
             $request = $this->getRequest();
             $params = $request->getParams();
 
             try {
                 
-                if (isset($params['qty'])) {
-                    $filter = new Zend_Filter_LocalizedToNormalized(
-                        array('locale' => Mage::app()->getLocale()->getLocaleCode())
-                    );
-                    $params['qty'] = $filter->filter($params['qty']);
-                }
+                $result = $this->_getModel()->addToCart($params);
                 
-                $productId = (int) $this->getRequest()->getParam('product');
-                $product = Mage::getModel('catalog/product')
-                    ->setStoreId(Mage::app()->getStore()->getId())
-                    ->load($productId);
-
-                if ($product && $product->getId()) {
-
-                    $related = $this->getRequest()->getParam('related_product');
-
-                    $cart = Mage::getSingleton('checkout/cart');
-                    $cart->addProduct($product, $params);      
-                    if (!empty($related)) {
-                        $cart->addProductsByIds(explode(',', $related));
-                    }
-
-                    $cart->save();
-                    
-                    Mage::getSingleton('checkout/session')->setCartWasUpdated(true);
-                    
-                    Mage::dispatchEvent('checkout_cart_add_product_complete',
-                        array('product' => $product, 'request' => $this->getRequest(), 'response' => $this->getResponse())
-                    );           
+                if (!$result['error']){
                     
                     $header = $this->_getHeader();
                     $checkoutFormHtml = $this->_getCheckoutForm();
+                    
+                    $result['data']['header'] = $header;
+                    $result['data']['checkout'] = $checkoutFormHtml;
 
-                    $result['error'] = false;
-                    $result['data'] = array(
-                        'message' => 'Product was added to cart.',
-                        'header' => $header,
-                        'checkout' => $checkoutFormHtml,
-                    );
-
-                } else {
-
-                    $result['error'] = true;
-                    $result['data'] = 'Product could not be loaded.';
                 }
 
             } catch (Exception $ex) {
@@ -138,32 +94,38 @@ class Aydus_BuyNow_IndexController extends Mage_Core_Controller_Front_Action
     {
         $result = array();
         
-        $request = $this->getRequest();
+        if ($this->_validateFormKey()) {
         
-        $payment = $request->getParam('payment');
+            $request = $this->getRequest();
+            $params = $request->getParams();
         
-        if ($payment && $payment['ba_agreement_id']){
-           
             try {
-               
-
-                $result['error'] = false;
-                $result['data'] = '';
-
-            } catch (Exception $e) {
-                
+        
+                $result = $this->_getModel()->checkout($params);
+        
+                if (!$result['error']){
+        
+                    $header = $this->_getHeader();
+        
+                    $result['data']['header'] = $header;
+        
+                }
+        
+            } catch (Exception $ex) {
+        
                 $result['error'] = true;
-                $result['data'] = $e->getMessage();
+                $result['data'] = $ex->getMessage();
             }
-
+        
         } else {
-            
+        
             $result['error'] = true;
-            $result['data'] = Mage::helper('aydus_buynow')->__('Parameters missing.');
+            $result['data'] = 'Invalid form';
         }
         
         $this->getResponse()->clearHeaders()->setHeader('Content-type','application/json',true);
         $this->getResponse()->setBody(json_encode($result));        
+
     }
     
     /**
@@ -229,12 +191,25 @@ class Aydus_BuyNow_IndexController extends Mage_Core_Controller_Front_Action
         return $data;
     }    
     
+    /**
+     * Get checkout html if customer has billing agreement
+     * 
+     * @return string|boolean
+     */
     public function _getCheckoutForm()
     {
-        $checkoutForm = $this->getLayout()->createBlock('aydus_buynow/form');
-        $checkoutForm->setTemplate('aydus/buynow/checkout.phtml');
+        $customer = Mage::getSingleton('customer/session')->getCustomer();
+        $collection = Mage::getModel('sales/billing_agreement')->getAvailableCustomerBillingAgreements($customer->getId());
         
-        return $checkoutForm->toHtml();
+        if ($collection->getSize()>0){
+            
+            $checkoutForm = $this->getLayout()->createBlock('aydus_buynow/form');
+            $checkoutForm->setTemplate('aydus/buynow/checkout.phtml');
+            
+            return $checkoutForm->toHtml();
+        } 
+        
+        return false;
     }
     
 }

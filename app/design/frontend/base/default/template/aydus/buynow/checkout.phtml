@@ -26,6 +26,12 @@
                     <?php echo $this->getAddressesHtmlSelect('shipping') ?>
                 </div>
             </li>
+            <li>
+                <label for="shipping_address_id" class="required"><em>*</em><?php echo $this->__('Shipping Method') ?></label>
+                <div class="input-box">
+                    <?php echo $this->getShippingMethodsHtmlSelect() ?>
+                </div>
+            </li>
             <?php endif ?>
             <li>
                 <label for="payment[ba_agreement_id]" class="required"><em>*</em><?php echo $this->__('Billing Agreement') ?></label>

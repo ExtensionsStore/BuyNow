@@ -16,7 +16,7 @@
         </li>
     </ul>        
     <div class="content fieldset">
-        <p class="form-instructions"><?php echo $this->__('If you have an account with us, please log in.') ?></p>
+        <p class="form-instructions"><?php echo $this->__('If you have an account with us, please log in.') ?> <a href="<?php echo $this->getUrl('customer/account/create') ?>"><?php echo $this->helper('customer')->__('Register') ?></a></p>
         <p class="required"><?php echo $this->__('* Required Fields') ?></p>
         <ul class="form-list">
             <li>

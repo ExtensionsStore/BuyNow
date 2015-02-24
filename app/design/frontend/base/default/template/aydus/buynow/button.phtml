@@ -17,8 +17,11 @@
     
     var buyNowOptions = {
         loggedIn : <?php echo (Mage::getSingleton('customer/session')->isLoggedIn()) ? 'true' : 'false' ?>,
-        loginLabel : '<?php echo $this->__('Login') ?>',
-        checkoutLabel : '<?php echo $this->__('Checkout') ?>',
+        registerUrl : '<?php echo $this->getUrl('customer/account/create') ?>',
+        registerLabel : '<?php echo $this->helper('customer')->__('Register') ?>',
+        loginLabel : '<?php echo $this->helper('customer')->__('Login') ?>',
+        checkoutLabel : '<?php echo $this->helper('checkout')->__('Checkout') ?>',
+        onepageUrl : '<?php echo $this->getUrl('checkout/onepage') ?>',
         addToCartUrl : '<?php echo $this->getUrl('buynow/index/addtocart') ?>',
         progressBackground : "background: white url(<?php echo $this->getSkinUrl('aydus/buynow/buynow-progress.gif') ?>) no-repeat center center;"
     };

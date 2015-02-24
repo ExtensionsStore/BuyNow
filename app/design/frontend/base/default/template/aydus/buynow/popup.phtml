@@ -8,14 +8,18 @@
  * @author     Aydus Consulting <davidt@aydus.com>
  */
 ?>
-<div id="buynow-login">
-    <?php if (!Mage::getSingleton('customer/session')->isLoggedIn()): ?>
-    <?php echo $this->getChildHtml('buynow.login') ?>
-    <?php endif; ?>
-</div>
+<div id="buynow-popup" style="background: white url(<?php echo $this->getSkinUrl('aydus/buynow/buynow-progress.gif') ?>) no-repeat center center;">
 
-<div id="buynow-checkout">
-    <?php if (Mage::getSingleton('customer/session')->isLoggedIn()): ?>
-    <?php echo $this->getChildHtml('buynow.checkout') ?>
-    <?php endif; ?>
+    <div id="buynow-login">
+        <?php if (!Mage::getSingleton('customer/session')->isLoggedIn()): ?>
+        <?php echo $this->getChildHtml('buynow.login') ?>
+        <?php endif; ?>
+    </div>
+    
+    <div id="buynow-checkout">
+        <?php if (Mage::getSingleton('customer/session')->isLoggedIn() && $this->hasBillingAgreement()): ?>
+        <?php echo $this->getChildHtml('buynow.checkout') ?>
+        <?php endif; ?>
+    </div>
+
 </div>
