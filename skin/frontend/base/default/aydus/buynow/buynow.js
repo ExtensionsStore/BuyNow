@@ -24,7 +24,7 @@ var BuyNow = function ($)
         modal: true,
         fluid: true,
         buttons: {
-            Cancel: function () {
+            Close: function () {
                 dialog.dialog("close");
             }
         },
@@ -47,17 +47,19 @@ var BuyNow = function ($)
     //not logged in button click
     var login = function ()
     {
-        varienForm = buyNowLoginForm;
-        form = varienForm.form;
-        options.buttons[registerLabel] = register;
-        options.buttons[loginLabel] = loginSubmit;
-        dialog = $("#buynow-login").dialog(options);
-        dialog.dialog("open");
+        if (productAddToCartForm.validator.validate()) {
+            varienForm = buyNowLoginForm;
+            form = varienForm.form;
+            options.buttons[registerLabel] = register;
+            options.buttons[loginLabel] = loginSubmit;
+            dialog = $("#buynow-login").dialog(options);
+            dialog.dialog("open");
+        }
     };
-    
-    var register = function()
+
+    var register = function ()
     {
-    	window.location.href = registerUrl;
+        window.location.href = registerUrl;
     }
 
     var loginSubmit = function ()
@@ -101,11 +103,57 @@ var BuyNow = function ($)
         addToCart(checkout);
     };
 
+    //on button click, add item to cart if NOT already in cart
+    var addToCart = function (callback)
+    {
+        if (!addedtocart) {
+
+            if (productAddToCartForm.validator.validate()) {
+
+                dialog = $("#buynow-popup").dialog(options);
+                dialog.dialog("open");
+
+                var $form = $('#product_addtocart_form');
+                var data = $form.serialize();
+
+                $.post(addToCartUrl, data, function (res) {
+                    dialog.dialog("close");
+
+                    if (!res.error) {
+
+                        addedtocart = true;
+                        $('#buynow-checkout').html(res.data.checkout);
+
+                        $('#ba_agreement_id').change(function () {
+                            var method = $(this).children(":selected").attr("method");
+                            $('#payment-method').val(method);
+                        });
+
+                        updateHeader(res.data.header);
+
+                        callback();
+
+                    } else {
+
+                        $('#buynow-checkout-form .messages').show().find('span').text(res.data);
+                    }
+
+                });
+
+            }
+
+        } else {
+
+            callback();
+        }
+
+    };
+
     //logged in, checkout button click
     var checkout = function ()
     {
-    	if (typeof buyNowCheckoutForm != 'undefined'){
-    		
+        if (typeof buyNowCheckoutForm != 'undefined') {
+
             varienForm = buyNowCheckoutForm;
             form = varienForm.form;
 
@@ -113,11 +161,11 @@ var BuyNow = function ($)
             options.buttons[checkoutLabel] = checkoutSubmit;
             dialog = $("#buynow-checkout").dialog(options);
             dialog.dialog("open");
-    		
-    	} else {
-    		
-    		window.location.href = onepageUrl;
-    	}
+
+        } else {
+
+            window.location.href = onepageUrl;
+        }
     };
 
     var checkoutSubmit = function ()
@@ -134,7 +182,8 @@ var BuyNow = function ($)
                 progress('#buynow-checkout .content', false);
                 if (!res.error) {
 
-                    checkoutSuccess(res.data);
+                    updateHeader(res.data.header);
+                    checkoutSuccess(res.data.success);
 
                 } else {
 
@@ -147,55 +196,11 @@ var BuyNow = function ($)
 
     };
 
-    var checkoutSuccess = function (data)
+    var checkoutSuccess = function (successHtml)
     {
-
-    };
-
-    //on button click, add item to cart if NOT already in cart
-    var addToCart = function (callback)
-    {
-    	if (!addedtocart){
-    		
-            if (productAddToCartForm.validator.validate()){
-            	
-                dialog = $("#buynow-popup").dialog(options);
-                dialog.dialog("open");
-            	
-                var $form = $('#product_addtocart_form');
-                var data = $form.serialize();
-
-                $.post(addToCartUrl, data, function (res) {
-                	dialog.dialog("close");
-                	
-                    if (!res.error) {
-
-                    	addedtocart = true;
-                        $('#buynow-checkout').html(res.data.checkout);
-                        
-                        $('#ba_agreement_id').change(function(){
-                        	var method = $(this).children(":selected").attr("method");
-                            $('#payment-method').val(method);
-                        });
-                        
-                        updateHeader(res.data.header);  
-                        
-                        callback();
-
-                    } else {
-
-                        $('#buynow-checkout-form .messages').show().find('span').text(res.data);
-                    }
-
-                });      
-                
-            }  
-            
-    	} else {
-    		
-            callback();
-    	}
-
+        $('#buynow-success').html(successHtml);
+        dialog = $("#buynow-success").dialog(options);
+        dialog.dialog("open");
     };
 
     //on button click, add to cart if not already in cart, then open dialog
@@ -254,7 +259,7 @@ var BuyNow = function ($)
     var progress = function (selector, show, position)
     {
         var $container = $(selector);
-        
+
         if (show) {
 
             $container.attr('style', progressBackground);
@@ -279,13 +284,13 @@ var BuyNow = function ($)
     var dim = function ($container, dim)
     {
         $container.children().each(function () {
-        	
+
             if (dim) {
                 $(this).css('opacity', '.3');
             } else {
                 $(this).css('opacity', '1');
             }
-            
+
         });
 
     };
@@ -312,23 +317,22 @@ var BuyNow = function ($)
                 //reposition dialog
                 dialog.option("position", dialog.options.position);
             }
-            
+
         });
 
     };
-    
-    var log = function(message)
+
+    var log = function (message)
     {
-    	if (typeof console == 'object'){
-    		console.log(message);
-    	} else {
-    		alert(message);
-    	}
-    	
+        if (typeof console == 'object') {
+            console.log(message);
+        } else {
+            alert(message);
+        }
+
     };
 
     return {
-    	
         init: function ()
         {
             $(function () {
@@ -359,7 +363,7 @@ var BuyNow = function ($)
                     $buynowButton.click(buyNowButtonClick);
                     button = $buynowButton[0];
                 } else {
-                	log('buyNowOptions not set.');
+                    log('buyNowOptions not set.');
                 }
 
             });

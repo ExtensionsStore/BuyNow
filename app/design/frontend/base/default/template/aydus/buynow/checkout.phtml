@@ -19,6 +19,12 @@
         <p class="form-instructions"><?php echo $this->getCheckoutFormInstructions() ?></p>
         <p class="required"><?php echo $this->__('* Required Fields') ?></p>
         <ul class="form-list">
+            <li>
+                <label for="billing_address_id" class="required"><em>*</em><?php echo $this->__('Billing Address') ?></label>
+                <div class="input-box">
+                    <?php echo $this->getAddressesHtmlSelect('billing') ?>
+                </div>
+            </li>
             <?php if ($this->isShippingRequired()): ?>
             <li>
                 <label for="shipping_address_id" class="required"><em>*</em><?php echo $this->__('Shipping Address') ?></label>

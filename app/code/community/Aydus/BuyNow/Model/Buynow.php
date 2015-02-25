@@ -109,29 +109,38 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
                                   
             $quote->setCustomerEmail($customer->getEmail());
             
+            $billingAddressId = ($data['billing_address_id']) ? $data['billing_address_id'] : $customer->getDefaultBilling();
+            
             //set billing addresses
-            $billingAddress = Mage::getModel('sales/quote_address')->load($customer->getDefaultBilling());
+            $customerAddress = Mage::getModel('customer/address')->load($billingAddressId);
+            $billingAddress = $quote->getBillingAddress();
+            if (!$billingAddress->getId()){
+                $billingAddress = Mage::getModel('sales/quote_address');
+            }
             $billingAddress->setQuote($quote);
+            $billingAddress->setData($customerAddress->getData());
             $billingAddress->save();
             $quote->setBillingAddress($billingAddress);
             
             //set shipping addresses
-            $shippingAddress = Mage::getModel('sales/quote_address')->load($customer->getDefaultShipping());
-            $shippingAddress->setQuote($quote);
-            
-            //set shipping method
-            $quoteItems = $quote->getAllVisibleItems();
-            foreach ($quoteItems as $quoteItem){
-                if (!$quoteItem->getParentItem()){
-                    $shippingAddress->addItem($quoteItem);
-                }
-            }            
-            $shippingMethod = $data['shipping_method'];
-            $shippingAddress->setShippingMethod($shippingMethod);
-            $shippingAddress->setCollectShippingRates(true);
-            $shippingAddress->save();
-            $quote->setShippingAddress($shippingAddress);
-            
+            if (!$quote->isVirtual()){
+                $shippingAddress = Mage::getModel('sales/quote_address')->load($customer->getDefaultShipping());
+                $shippingAddress->setQuote($quote);
+
+                //set shipping method
+                $quoteItems = $quote->getAllVisibleItems();
+                foreach ($quoteItems as $quoteItem){
+                    if (!$quoteItem->getParentItem()){
+                        $shippingAddress->addItem($quoteItem);
+                    }
+                }            
+                $shippingMethod = $data['shipping_method'];
+                $shippingAddress->setShippingMethod($shippingMethod);
+                $shippingAddress->setCollectShippingRates(true);
+                $shippingAddress->save();
+                $quote->setShippingAddress($shippingAddress);                
+            }
+
             //set payment method
             $data['checks'] = Mage_Payment_Model_Method_Abstract::CHECK_USE_CHECKOUT
             | Mage_Payment_Model_Method_Abstract::CHECK_USE_FOR_COUNTRY
@@ -167,7 +176,7 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
             );            
                                         
             $result['error'] = false;
-            $result['data'] = $order->getIncrementId();
+            $result['data']['increment_id'] = $order->getIncrementId();
              
         } catch(Exception $e){
         

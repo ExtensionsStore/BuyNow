@@ -9,3 +9,7 @@
 #buynow-login, #buynow-checkout {
     display: none;
 }
+
+#buynow-popup .dialog {
+    height: 354px;
+}

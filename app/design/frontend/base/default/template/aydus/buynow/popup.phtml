@@ -10,16 +10,20 @@
 ?>
 <div id="buynow-popup" style="background: white url(<?php echo $this->getSkinUrl('aydus/buynow/buynow-progress.gif') ?>) no-repeat center center;">
 
-    <div id="buynow-login">
+    <div id="buynow-login" class="dialog">
         <?php if (!Mage::getSingleton('customer/session')->isLoggedIn()): ?>
         <?php echo $this->getChildHtml('buynow.login') ?>
         <?php endif; ?>
     </div>
     
-    <div id="buynow-checkout">
+    <div id="buynow-checkout" class="dialog">
         <?php if (Mage::getSingleton('customer/session')->isLoggedIn() && $this->hasBillingAgreement()): ?>
         <?php echo $this->getChildHtml('buynow.checkout') ?>
         <?php endif; ?>
     </div>
 
+    <div id="buynow-success" class="dialog">
+        
+    </div>
+    
 </div>
