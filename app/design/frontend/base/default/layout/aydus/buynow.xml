@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 
 /**
- * CustomCase adminhtml layout
+ * 
  * 
  * @category   Aydus
  * @package    Aydus_BuyNow
@@ -28,7 +28,9 @@
         <reference name="before_body_end">
             <block type="aydus_buynow/form" name="buynow.popup" template="aydus/buynow/popup.phtml">
                 <block type="aydus_buynow/form" name="buynow.login" template="aydus/buynow/login.phtml" />
-                <block type="aydus_buynow/form" name="buynow.checkout" template="aydus/buynow/checkout.phtml" />
+                <block type="aydus_buynow/form" name="buynow.checkout" template="aydus/buynow/checkout.phtml">
+	                <block type="aydus_buynow/form" name="buynow.shipping_method" template="aydus/buynow/shipping/methods.phtml" />
+                </block>
             </block>
         </reference>                
     </catalog_product_view>

@@ -97,97 +97,26 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
         return $result;
     }
     
-    public function checkout($params)
+    public function checkout($data)
     {
         $result = array('error'=>true);
         
         try {
         
-            //load quote
-            $quoteId = (int)$data['quote'];
-            $store = Mage::getSingleton('core/store')->load($this->getStoreId());
-            $quote = Mage::getModel('sales/quote')->setStore($store)->load($quoteId);
+            $store = Mage::app()->getStore();
+            $customer = Mage::getSingleton('customer/session')->getCustomer();
+            $quote = Mage::getSingleton('checkout/session')->getQuote();  
+                                  
+            $quote->setCustomerEmail($customer->getEmail());
             
-            if (!$quote->getIsActive()){
-                
-                $result['error'] = true;
-                $result['data'] = 'Quote is inactive';
-                
-                return $result;
-            }
-            
-            //set customer email - required
-            $email = $data['email'];
-            if(!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)){
-                
-                $result['error'] = true;
-                $result['data'] = 'Email is invalid';
-                
-                return $result;
-            }
-            $quote->setCustomerEmail($email);
-            
-            //set addresses
-            $quoteAddressCollection = Mage::getModel('sales/quote_address')->getCollection();
-            $quoteAddressCollection->addFieldToFilter('quote_id',$quoteId);
-            //delete existing addresses - should not have any
-            if ($quoteAddressCollection->getSize()>0){
-                foreach ($quoteAddressCollection as $address){
-                    $address->delete();
-                }
-            }     
-              
             //set billing addresses
-            $billingAddressData = $data['billing'];
-            $billingAddressData['address_type'] = 'billing';
-            $billingRegion = $billingAddressData['region'];
-            $billingCountry = $billingAddressData['country'];
-            $billingAddressData['country_id'] = $billingCountry;
-            $regionModel = Mage::getModel('directory/region');
-            if (is_numeric($billingRegion)){
-                $regionModel->load($billingRegion);
-            } else {
-                $regionModel->loadByCode($billingRegion, $billingCountry);
-                if (!$regionModel->getId()){
-                    $regionModel->loadByName($billingRegion, $billingCountry);
-                }
-            }
-            $billingAddressData['region'] = $regionModel->getCode();
-            $billingAddressData['region_id'] = $regionModel->getId();
-            if (is_array($billingAddressData['street'])){
-                $billingAddressData['street'] = implode("\n", $billingAddressData['street']);
-            }       
-            $billingAddress = Mage::getModel('sales/quote_address');;
-            $billingAddress->setData($billingAddressData);
-            $billingAddress->setQuoteId($quoteId);
+            $billingAddress = Mage::getModel('sales/quote_address')->load($customer->getDefaultBilling());
             $billingAddress->setQuote($quote);
             $billingAddress->save();
             $quote->setBillingAddress($billingAddress);
             
             //set shipping addresses
-            $shippingAddressData = $data['shipping'];
-            $shippingAddressData['address_type'] = 'shipping';
-            $shippingRegion = $shippingAddressData['region'];
-            $shippingCountry = $shippingAddressData['country'];
-            $shippingAddressData['country_id'] = $shippingCountry;
-            $regionModel = Mage::getModel('directory/region');
-            if (is_numeric($shippingRegion)){
-                $regionModel->load($shippingRegion);
-            } else {
-                $regionModel->loadByCode($shippingRegion, $shippingCountry);
-                if (!$regionModel->getId()){
-                    $regionModel->loadByName($shippingRegion, $shippingCountry);
-                }
-            }            
-                        
-            $shippingAddressData['region'] = $regionModel->getCode();
-            $shippingAddressData['region_id'] = $regionModel->getId();
-            if (is_array($shippingAddressData['street'])){
-                $shippingAddressData['street'] = implode("\n", $shippingAddressData['street']);
-            }
-            $shippingAddress = Mage::getModel('sales/quote_address');
-            $shippingAddress->setData($shippingAddressData);
-            $shippingAddress->setQuoteId($quoteId);
+            $shippingAddress = Mage::getModel('sales/quote_address')->load($customer->getDefaultShipping());
             $shippingAddress->setQuote($quote);
             
             //set shipping method
@@ -200,36 +129,19 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
             $shippingMethod = $data['shipping_method'];
             $shippingAddress->setShippingMethod($shippingMethod);
             $shippingAddress->setCollectShippingRates(true);
-            //shipping rates are collected during quote collectTotals;
-            //$shippingAddress->collectShippingRates();
-            //$shippingAddress->setCollectShippingRates(false);
             $shippingAddress->save();
             $quote->setShippingAddress($shippingAddress);
             
             //set payment method
-            $paymentMethod = $data['payment_method'];
-            $method = $paymentMethod['method'];
-            //delete existing payments - should not have any
-            $quotePaymentsCollection = Mage::getModel('sales/quote_payment')->getCollection();
-            $quotePaymentsCollection->addFieldToFilter('quote_id',$quoteId);
-            if ($quotePaymentsCollection->getSize()>0){
-                foreach ($quotePaymentsCollection as $payment){
-                    $payment->delete();
-                }
-            }
-            $payment = Mage::getModel('sales/quote_payment');
-            $paymentMethodData = array(
-                    'quote_id' => $quoteId,
-                    'method' => $method,
-                    'cc_type' => $paymentMethod['cc_type'],
-                    'cc_owner' => $paymentMethod['cc_owner'],
-                    'cc_number_enc' => Mage::helper('core')->encrypt($paymentMethod['cc_number']),
-                    'cc_last4' => substr($paymentMethod['cc_number'], -4),
-                    'cc_cid_enc' => Mage::helper('core')->encrypt($paymentMethod['cc_cid']),
-                    'cc_exp_month' => $paymentMethod['cc_exp_month'],
-                    'cc_exp_year' => $paymentMethod['cc_exp_year'],                   
-            );
-            $payment->setData($paymentMethodData);
+            $data['checks'] = Mage_Payment_Model_Method_Abstract::CHECK_USE_CHECKOUT
+            | Mage_Payment_Model_Method_Abstract::CHECK_USE_FOR_COUNTRY
+            | Mage_Payment_Model_Method_Abstract::CHECK_USE_FOR_CURRENCY
+            | Mage_Payment_Model_Method_Abstract::CHECK_ORDER_TOTAL_MIN_MAX
+            | Mage_Payment_Model_Method_Abstract::CHECK_ZERO_TOTAL;
+                        
+            $paymentData = $data['payment'];
+            $payment = $quote->getPayment();
+            $payment->importData($paymentData);
             $payment->setQuote($quote);
             $payment->save();
             $quote->setPayment($payment);
@@ -237,7 +149,6 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
             $quote->reserveOrderId();
             $quote->setTotalsCollectedFlag(false);
             $quote->collectTotals();
-            $quote->getShippingAddress()->setShippingMethod($shippingMethod);
             $quote->save();
             
             //convert the quote to order

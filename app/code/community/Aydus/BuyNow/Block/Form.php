@@ -74,7 +74,7 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
     {
         if ($this->isShippingRequired()){
 
-            return $this->__('Select your shipping and billing.');
+            return $this->__('Select your shipping and billing agreement.');
             
         } else {
             
@@ -104,6 +104,8 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
     {
         if ($this->isCustomerLoggedIn()) {
             $options = array();
+            $options[] = array('value'=>'', 'label' => $this->__('-- Select '.ucfirst($type).' Address --'));
+            
             foreach ($this->getCustomer()->getAddresses() as $address) {
                 $options[] = array(
                     'value' => $address->getId(),
@@ -130,79 +132,85 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
                 ->setValue($addressId)
                 ->setOptions($options);
 
-            $select->addOption('', Mage::helper('checkout')->__('New Address'));
-
             return $select->getHtml();
         }
         return '';
     }    
-    
-    //'shipping_method', 'shipping_method', 'shipping'
-    
-    public function getShippingMethodsHtmlSelect($_methods = null, $fieldId = 'shipping_method', $fieldName = 'shipping_method', $fieldClass = 'shipping'){
         
-        if (!$_methods){
-            $_methods = Mage::getSingleton('shipping/config')->getActiveCarriers();
-        }
+    public function getShippingMethodsHtmlSelect(){
         
-        $_shippingHtml = '<select name="' . $fieldName . '" id="' . $fieldId . '" class="' . $fieldClass . '">';
-        foreach($_methods as $_carrierCode => $_carrier){
-            if($_method = $_carrier->getAllowedMethods())  {
-                if(!$_title = Mage::getStoreConfig('carriers/' . $_carrierCode . ' /title')) {
-                    $_title = $_carrierCode;
-                }
-                $_shippingHtml .= '<optgroup label="' . $_title . '">';
-                foreach($_method as $_mcode => $_m){
-                    $_code = $_carrierCode . '_' . $_mcode;
-                    $_shippingHtml .= '<option value="' . $_code . '">' . $_m . '</option>';
-                }
-                $_shippingHtml .= '</optgroup>';
+        $quote = $this->getQuote();
+        $store = $quote->getStore();
+        $address = $quote->getShippingAddress();
+        $address->collectShippingRates()->save();
+        
+        $groups = $address->getGroupedAllShippingRates();
+        
+        $options[] = array('value'=>'', 'label' => $this->__('-- Select Shipping Method --'));
+        $taxHelper = $this->helper('tax');
+        $includingTax = $taxHelper->displayShippingPriceIncludingTax();
+                
+        foreach ($groups as $carrier=>$rates){
+            
+            foreach ($rates as $rate ){
+                $options[$carrier]['label'] = $rate->getCarrierTitle();
+                $price =  $taxHelper->getShippingPrice($rate->getPrice(), $includingTax, $address);
+                $value = $rate->getCode();
+                $label = $rate->getMethodTitle() . ' - ' . $store->convertPrice($price, true, false);
+                $options[$carrier]['value'][] = array('value'=> $value, 'label' => $label );
             }
         }
-        $_shippingHtml .= '</select>';
         
-        return $_shippingHtml;
+        $select = $this->getLayout()->createBlock('core/html_select')
+        ->setName('shipping_method')
+        ->setId('shipping_method_select')
+        ->setClass('required-entry')
+        ->setOptions($options);
+                
+        return $select->getHtml();   
     }
     
-   /* public function getShippingMethodsHtmlSelect()
+    public function getPaymentMethod()
     {
-        $select = $this->getLayout()->createBlock('core/html_select')
-        ->setName($type.'_address_id')
-        ->setId($type.'-address-select')
-        ->setClass('required-entry address-select')
-        ->setValue($addressId)
-        ->setOptions($options);
-        
-        $select->addOption('', Mage::helper('checkout')->__('New Address'));
-        
-        return $select->getHtml();        
-    }*/
+        if ($this->getBillingAgreements()->getSize() == 1){
+            $collection = $this->getBillingAgreements();
+            $item = $collection->getFirstItem();
+            return $item->getMethodCode();
+        }
+    }
     
-    public function hasBillingAgreement()
+    public function getBillingAgreements()
     {
         $collection = Mage::getModel('sales/billing_agreement')->getAvailableCustomerBillingAgreements(
                 $this->getCustomer()->getId()
         );
 
-        return $collection->getSize();
+        return $collection;
+    }
+    
+    public function hasBillingAgreement()
+    {
+        return $this->getBillingAgreements()->getSize();
     }
     
     public function getBillingAgreementsHtmlSelect() 
     {
-        $options = array();
-        $collection = Mage::getModel('sales/billing_agreement')->getAvailableCustomerBillingAgreements(
-                $this->getCustomer()->getId()
-        );
-
+        $collection = $this->getBillingAgreements();
+        $options[] = array('value'=>'', 'label' => $this->__('-- Select Billing Agreement --'));
+        
         foreach ($collection as $item) {
-            $options[] = array('value'=>$item->getId(), 'label' => $item->getReferenceId());
+            $value = $item->getId();
+            $methodCode = $item->getMethodCode();
+            $method = str_replace('_',' ',$methodCode);
+            $label = ucwords($method).' - '.$item->getReferenceId();
+            $options[] = array('value'=>$value, 'label' => $label, 'params'=>array('method'=>$methodCode));
         }
         
         $select = $this->getLayout()->createBlock('core/html_select')
             ->setName('payment[ba_agreement_id]')
             ->setId('ba_agreement_id')
             ->setClass('required-entry')
-            ->setValue(1)
+            //->setValue(1)
             ->setOptions($options);
 
         return $select->getHtml();        

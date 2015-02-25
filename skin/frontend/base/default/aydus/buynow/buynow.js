@@ -172,6 +172,12 @@ var BuyNow = function ($)
 
                     	addedtocart = true;
                         $('#buynow-checkout').html(res.data.checkout);
+                        
+                        $('#ba_agreement_id').change(function(){
+                        	var method = $(this).children(":selected").attr("method");
+                            $('#payment-method').val(method);
+                        });
+                        
                         updateHeader(res.data.header);  
                         
                         callback();
