@@ -202,6 +202,27 @@ class Aydus_BuyNow_IndexController extends Mage_Core_Controller_Front_Action {
         return false;
     }
     
+    public function setBillingAddressAction()
+    {
+        $result = array();
+        
+        $customerAddressId = (int)$this->getRequest()->getParam('billing_address_id');
+        
+        if ($customerAddressId){
+            
+            $result = $this->_getModel()->setBillingAddress($customerAddressId);
+            
+        } else {
+            
+            $result['error'] = true;
+            $result['data'] = 'No billing address id.';
+        }
+        
+        
+        $this->getResponse()->clearHeaders()->setHeader('Content-type', 'application/json', true);
+        $this->getResponse()->setBody(json_encode($result));        
+    }
+    
     public function shippingMethodsAction()
     {
         $result = array();

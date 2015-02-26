@@ -97,6 +97,48 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
         return $result;
     }
     
+    public function getQuote()
+    {
+        return Mage::getSingleton('checkout/session')->getQuote();
+    }
+    
+    public function setBillingAddress($customerAddressId)
+    {
+        $result = array('error'=>true);
+        
+        try {
+            $quote = $this->getQuote();
+            $customerAddress = Mage::getModel('customer/address');
+            $customerAddress->load($customerAddressId);
+
+            $quoteAddress = Mage::getModel('sales/quote_address');
+            if ($quote->getBillingAddress() && $quote->getBillingAddress()->getId()) {
+
+                $quoteBillingAddressId = $quote->getBillingAddress()->getId();
+                $quoteAddress->load($quoteBillingAddressId);
+            }
+
+            $quoteAddress->importCustomerAddress($customerAddress);
+            $quoteAddress->setQuote($quote);
+            $quote->setBillingAddress($quoteAddress);  
+            $quote->save();    
+            
+        } catch (Exception $ex) {
+            
+            $result['error'] = true;
+            $result['data'] = $e->getMessage();
+        }
+
+        
+        return $result;
+    }
+    
+    public function setShippingAddress($customerAddressId)
+    {
+        $quote = $this->getQuote();
+        
+    }    
+    
     public function checkout($data)
     {
         $result = array('error'=>true);

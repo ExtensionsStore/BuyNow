@@ -85,6 +85,7 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
     public function getAddressesHtmlSelect($type)
     {
         $quote = $this->getQuote();
+        $addressId = null;
         $options = array();
         $options[] = array('value'=>'', 'label' => $this->__('-- Select '.ucfirst($type).' Address --'));
         
@@ -107,7 +108,7 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
         if (!$addressId){
             if ($type=='billing') {
                 
-                if ($quote->getBillingAddress() && $quote->getBillingAddress()->getId()){
+                if ($quote->getBillingAddress() && $quote->getBillingAddress()->getCustomerAddressId()){
                     
                     $addressId = $quote->getBillingAddress()->getCustomerAddressId();
                 } else {
@@ -115,7 +116,7 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
                 }
                 
             } else {
-                if ($quote->getShippingAddress() && $quote->getShippingAddress()->getId()){
+                if ($quote->getShippingAddress() && $quote->getShippingAddress()->getCustomerAddressId()){
                     $addressId = $quote->getShippingAddress()->getCustomerAddressId();
                 } else {
                     $addressId = $this->getCustomer()->getPrimaryShippingAddress()->getId();
@@ -238,6 +239,12 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
         $collection = $this->getBillingAgreements();
         $options[] = array('value'=>'', 'label' => $this->__('-- Select Billing Agreement --'));
         
+        $value = null;
+        if ($collection->getSize() == 1){
+            $item = $collection->getFirstItem();
+            $value = $item->getId();
+        }
+        
         foreach ($collection as $item) {
             $value = $item->getId();
             $methodCode = $item->getMethodCode();
@@ -250,7 +257,7 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
             ->setName('payment[ba_agreement_id]')
             ->setId('ba_agreement_id')
             ->setClass('required-entry')
-            //->setValue(1)
+            ->setValue($value)
             ->setOptions($options);
 
         return $select->getHtml();        

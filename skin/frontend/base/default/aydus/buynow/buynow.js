@@ -14,6 +14,7 @@ var BuyNow = function ($)
     var addToCartUrl;
     var registerUrl;
     var onepageUrl;
+    var setBillingAddressUrl;
     var shippingMethodsUrl;
     var addToCartForm;
 
@@ -141,39 +142,58 @@ var BuyNow = function ($)
         }
 
     };
-    
-    var loadCheckout = function(data)
+
+    var loadCheckout = function (data)
     {
-        updateHeader(data.header);    	
-        
+        updateHeader(data.header);
+
         $('#buynow-checkout').html(data.checkout);
 
         $('#ba_agreement_id').change(function () {
             var method = $(this).children(":selected").attr("method");
             $('#payment-method').val(method);
         });
-        
+
+        $('#billing-address-select').change(setBillingAddress);
         $('#shipping-address-select').change(updateShippingMethods);
 
         checkout();
     };
     
-    var updateShippingMethods = function(e)
+    var setBillingAddress = function(e)
     {
-    	var shippingAddressId = $(this).val();
-    	shippingAddressId = parseInt(shippingAddressId);
-    	if (!isNaN(shippingAddressId) && shippingAddressId > 0){
-    		var data = { shipping_address_id : shippingAddressId };
-    		
-        	$.get(shippingMethodsUrl, data, function(res){
-        		if (!res.error){
-            		$('#shipping_method_select').replaceWith(res.data)
-        		} else {
-        			log(res.data);
-        		}
-        	});
-    		
-    	}
+        var billingAddressId = $(this).val();
+        billingAddressId = parseInt(billingAddressId);
+        if (!isNaN(billingAddressId) && billingAddressId > 0) {
+            var data = {billing_address_id: billingAddressId};
+
+            $.get(setBillingAddressUrl, data, function (res) {
+                if (!res.error) {
+                    $('#shipping_method_select').replaceWith(res.data)
+                } else {
+                    log(res.data);
+                }
+            });
+
+        }        
+    }
+
+    var updateShippingMethods = function (e)
+    {
+        var shippingAddressId = $(this).val();
+        shippingAddressId = parseInt(shippingAddressId);
+        if (!isNaN(shippingAddressId) && shippingAddressId > 0) {
+            var data = {shipping_address_id: shippingAddressId};
+
+            $.get(shippingMethodsUrl, data, function (res) {
+                if (!res.error) {
+                    $('#shipping_method_select').replaceWith(res.data)
+                } else {
+                    log(res.data);
+                }
+            });
+
+        }
     };
 
     //logged in, checkout button click
@@ -236,7 +256,7 @@ var BuyNow = function ($)
         if (!loggedin) {
             login();
         } else {
-            addToCart(checkout);
+            addToCart();
         }
     };
 
@@ -375,8 +395,9 @@ var BuyNow = function ($)
                     registerLabel = buyNowOptions.registerLabel;
                     registerUrl = buyNowOptions.registerUrl;
                     onepageUrl = buyNowOptions.onepageUrl;
+                    setBillingAddressUrl = buyNowOptions.setBillingAddressUrl;
                     shippingMethodsUrl = buyNowOptions.shippingMethodsUrl;
-                    addToCartForm = (productAddToCartForm.form.id =='product_addtocart_form') ? productAddToCartForm : new VarienForm('product_addtocart_form');
+                    addToCartForm = (productAddToCartForm.form.id == 'product_addtocart_form') ? productAddToCartForm : new VarienForm('product_addtocart_form');
 
                     // on window resize run function
                     $(window).resize(function () {
@@ -392,7 +413,7 @@ var BuyNow = function ($)
                     $buynowButton.click(buyNowButtonClick);
                     button = $buynowButton[0];
                 } else {
-                	$('#buynow-button').hide();
+                    $('#buynow-button').hide();
                     log('buyNowOptions not set.');
                 }
 
