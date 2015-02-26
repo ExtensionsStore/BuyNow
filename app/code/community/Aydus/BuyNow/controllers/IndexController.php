@@ -63,8 +63,12 @@ class Aydus_BuyNow_IndexController extends Mage_Core_Controller_Front_Action {
                     $checkoutFormHtml = $this->_getCheckoutForm();
 
                     $result['data']['header'] = $header;
-                    $result['data']['checkout'] = $checkoutFormHtml;
+                    
+                    if ($result['data']['checkout']){
+                        $result['data']['checkout'] = $checkoutFormHtml;
+                    }
                 }
+                
             } catch (Exception $ex) {
 
                 $result['error'] = true;
@@ -202,7 +206,7 @@ class Aydus_BuyNow_IndexController extends Mage_Core_Controller_Front_Action {
         return false;
     }
     
-    public function setBillingAddressAction()
+    public function changeBillingAddressAction()
     {
         $result = array();
         
@@ -226,17 +230,28 @@ class Aydus_BuyNow_IndexController extends Mage_Core_Controller_Front_Action {
     public function shippingMethodsAction()
     {
         $result = array();
+        
+        $customerAddressId = (int)$this->getRequest()->getParam('shipping_address_id');
+        
+        if ($customerAddressId){
+        
+            $result = $this->_getModel()->setShippingAddress($customerAddressId);
+            
+            if (!$result['error']){
+                
+                $shippingMethods = $this->getLayout()->createBlock('aydus_buynow/form');
+                $shippingMethods->setTemplate('aydus/buynow/shipping/methods.phtml');
+                                                
+                $result['error'] = false;
+                $result['data']['html'] = $shippingMethods->toHtml();
+            }
+        
+        } else {
+        
+            $result['error'] = true;
+            $result['data'] = 'No billing address id.';
+        }        
 
-        $shippingMethods = $this->getLayout()->createBlock('aydus_buynow/form');
-        $shippingMethods->setTemplate('aydus/buynow/shipping/methods.phtml');
-        
-        $shippingAddressId = (int)$this->getRequest()->getParam('shipping_address_id');
-        if ($shippingAddressId){
-            $shippingMethods->setShippingAddressId($shippingAddressId);
-        }
-        
-        $result['error'] = false;
-        $result['data'] = $shippingMethods->toHtml();
         
         $this->getResponse()->clearHeaders()->setHeader('Content-type', 'application/json', true);
         $this->getResponse()->setBody(json_encode($result));

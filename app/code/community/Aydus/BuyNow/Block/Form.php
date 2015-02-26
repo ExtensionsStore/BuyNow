@@ -95,34 +95,22 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
                 'label' => $address->format('oneline')
             );
         }
-        
-        if ($type == 'billing'){
-            
-            $addressId = $this->getBillingAddressId();
-            
-        } else {
-            $addressId = $this->getShippingAddressId();
-            
-        }
-        
-        if (!$addressId){
-            if ($type=='billing') {
                 
-                if ($quote->getBillingAddress() && $quote->getBillingAddress()->getCustomerAddressId()){
-                    
-                    $addressId = $quote->getBillingAddress()->getCustomerAddressId();
-                } else {
-                    $addressId = $this->getCustomer()->getPrimaryBillingAddress()->getId();
-                }
+        if ($type=='billing') {
+            
+            if ($quote->getBillingAddress() && $quote->getBillingAddress()->getCustomerAddressId()){
                 
+                $addressId = $quote->getBillingAddress()->getCustomerAddressId();
             } else {
-                if ($quote->getShippingAddress() && $quote->getShippingAddress()->getCustomerAddressId()){
-                    $addressId = $quote->getShippingAddress()->getCustomerAddressId();
-                } else {
-                    $addressId = $this->getCustomer()->getPrimaryShippingAddress()->getId();
-                }           
+                $addressId = $this->getCustomer()->getPrimaryBillingAddress()->getId();
             }
             
+        } else {
+            if ($quote->getShippingAddress() && $quote->getShippingAddress()->getCustomerAddressId()){
+                $addressId = $quote->getShippingAddress()->getCustomerAddressId();
+            } else {
+                $addressId = $this->getCustomer()->getPrimaryShippingAddress()->getId();
+            }           
         }
 
         $select = $this->getLayout()->createBlock('core/html_select')
@@ -141,49 +129,11 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
         $quote = $this->getQuote();
         $quoteId = $quote->getId();
         
-        $customerAddress = Mage::getModel('customer/address');
-        $shippingAddressId = $this->getShippingAddressId();
+        $shippingAddress = $quote->getShippingAddress();
+        $shippingAddress->setCollectShippingRates(true)->save();
+        $shippingAddress->collectShippingRates();
         
-        if (!$shippingAddressId){
-            
-            if ($quote->getShippingAddress() && $quote->getShippingAddress()->getId()) {
-                
-                $shippingAddressId = $quote->getShippingAddress()->getCustomerAddressId();
-                
-            } else {
-                
-                $shippingAddressId = $this->getCustomer()->getPrimaryShippingAddress()->getId();
-            }
-        }
-        
-        $customerAddress->load($shippingAddressId);
-        $customerAddressId = $customerAddress->getId();
-        
-        $quoteShippingAddress = Mage::getModel('sales/quote_address');
-        if ($quote->getShippingAddress() && $quote->getShippingAddress()->getId()) {
-        
-            $quoteShippingAddressId = $quote->getShippingAddress()->getId();
-            $quoteShippingAddress->load($quoteShippingAddressId);
-        }
-        
-        $addressData = array(
-                'customer_address_id' => $customerAddressId,
-                'firstname' => $customerAddress->getFirstname(), 
-                'lastname'=>$customerAddress->getLastname(), 
-                'street'=>trim(implode("\n", $customerAddress->getStreet())), 
-                'city'=>$customerAddress->getCity(), 
-                'region_id'=>$customerAddress->getRegionId(), 
-                'postcode'=>$customerAddress->getPostcode(), 
-                'country_id' => $customerAddress->getCountryId(), 
-                'telephone'=>$customerAddress->getTelephone(),
-        );
-        
-        $quoteShippingAddress->addData($addressData);
-        $quoteShippingAddress->setQuote($quote);
-        $quoteShippingAddress->collectShippingRates()->save();
-        $quote->setShippingAddress($quoteShippingAddress);
-        
-        $groups = $quoteShippingAddress->getGroupedAllShippingRates();
+        $groups = $shippingAddress->getGroupedAllShippingRates();
         
         $options[] = array('value'=>'', 'label' => $this->__('-- Select Shipping Method --'));
         
@@ -195,7 +145,7 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
             
             foreach ($rates as $rate ){
                 $options[$carrier]['label'] = $rate->getCarrierTitle();
-                $price =  $taxHelper->getShippingPrice($rate->getPrice(), $includingTax, $quoteAddress);
+                $price =  $taxHelper->getShippingPrice($rate->getPrice(), $includingTax, $shippingAddress);
                 $value = $rate->getCode();
                 $label = $rate->getMethodTitle() . ' - ' . $store->convertPrice($price, true, false);
                 $options[$carrier]['value'][] = array('value'=> $value, 'label' => $label );
@@ -206,6 +156,7 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
         ->setName('shipping_method')
         ->setId('shipping_method_select')
         ->setClass('required-entry')
+        ->setValue($shippingAddress->getShippingMethod())
         ->setOptions($options);
                 
         return $select->getHtml();   
@@ -236,11 +187,18 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
     
     public function getBillingAgreementsHtmlSelect() 
     {
+        $quote = $this->getQuote();
         $collection = $this->getBillingAgreements();
         $options[] = array('value'=>'', 'label' => $this->__('-- Select Billing Agreement --'));
         
-        $value = null;
-        if ($collection->getSize() == 1){
+        $payment = $quote->getPayment();
+        $method = $payment->getMethod();
+        $additionalInformation = $payment->getAdditionalInformation();
+        if (is_numeric(strpos($method,'_billing_agreement')) && is_array($additionalInformation)){
+            $value = $additionalInformation['ba_agreement_id'];
+        }
+        
+        if (!$value){
             $item = $collection->getFirstItem();
             $value = $item->getId();
         }

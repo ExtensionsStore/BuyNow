@@ -81,11 +81,13 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
                 
                 $result['error'] = false;
                 $result['data']['message'] = 'Product was added to cart.';
-        
+                $result['data']['checkout'] = true;
+                
             } else {
         
                 $result['error'] = false;
                 $result['data']['message'] = 'Product is already in the cart.';
+                $result['data']['checkout'] = false;
             }
         
         } else {
@@ -101,7 +103,7 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
     {
         return Mage::getSingleton('checkout/session')->getQuote();
     }
-    
+       
     public function setBillingAddress($customerAddressId)
     {
         $result = array('error'=>true);
@@ -112,16 +114,22 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
             $customerAddress->load($customerAddressId);
 
             $quoteAddress = Mage::getModel('sales/quote_address');
+            
             if ($quote->getBillingAddress() && $quote->getBillingAddress()->getId()) {
 
                 $quoteBillingAddressId = $quote->getBillingAddress()->getId();
                 $quoteAddress->load($quoteBillingAddressId);
+            } else {
+                
+                $quoteAddress->setQuote($quote);
             }
 
             $quoteAddress->importCustomerAddress($customerAddress);
-            $quoteAddress->setQuote($quote);
             $quote->setBillingAddress($quoteAddress);  
-            $quote->save();    
+            $quote->save();  
+              
+            $result['error'] = false;
+            $result['data'] = 'Billing address has been updated.';
             
         } catch (Exception $ex) {
             
@@ -135,8 +143,45 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
     
     public function setShippingAddress($customerAddressId)
     {
-        $quote = $this->getQuote();
+        $result = array('error'=>true);
         
+        try {
+            $quote = $this->getQuote();
+            $customerAddress = Mage::getModel('customer/address');
+            $customerAddress->load($customerAddressId);
+
+            $quoteAddress = Mage::getModel('sales/quote_address');
+            
+            if ($quote->getShippingAddress() && $quote->getShippingAddress()->getId()) {
+
+                $quoteShippingAddressId = $quote->getShippingAddress()->getId();
+                $quoteAddress->load($quoteShippingAddressId);
+            } else {
+                
+                $quoteAddress->setQuote($quote);
+            }
+            
+            $quoteAddress->importCustomerAddress($customerAddress);
+            if ($quote->getBillingAddress() && $quote->getBillingAddress()->getCustomerAddressId() == $customerAddressId){
+                $quoteAddress->setSameAsBilling(1);
+            } else {
+                $quoteAddress->setSameAsBilling(0);
+            }
+            
+            $quoteAddress->setCollectShippingRates(true);
+            $quote->setShippingAddress($quoteAddress);  
+            $quote->save();  
+              
+            $result['error'] = false;
+            $result['data']['message'] = 'Shipping address has been updated.';
+            
+        } catch (Exception $ex) {
+            
+            $result['error'] = true;
+            $result['data'] = $e->getMessage();
+        }
+
+        return $result;
     }    
     
     public function checkout($data)
@@ -225,7 +270,6 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
             $result['error'] = true;
             $result['data'] = $e->getMessage();
         }        
-        
         
         return $result;
     }

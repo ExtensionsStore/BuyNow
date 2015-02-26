@@ -14,7 +14,7 @@ var BuyNow = function ($)
     var addToCartUrl;
     var registerUrl;
     var onepageUrl;
-    var setBillingAddressUrl;
+    var changeBillingAddressUrl;
     var shippingMethodsUrl;
     var addToCartForm;
 
@@ -147,8 +147,13 @@ var BuyNow = function ($)
     {
         updateHeader(data.header);
 
-        $('#buynow-checkout').html(data.checkout);
-
+        if (data.checkout){
+            $('#buynow-checkout').html(data.checkout);
+        }
+        
+        var method = $('#ba_agreement_id').children(":selected").attr("method");
+        $('#payment-method').val(method);
+        
         $('#ba_agreement_id').change(function () {
             var method = $(this).children(":selected").attr("method");
             $('#payment-method').val(method);
@@ -167,7 +172,7 @@ var BuyNow = function ($)
         if (!isNaN(billingAddressId) && billingAddressId > 0) {
             var data = {billing_address_id: billingAddressId};
 
-            $.get(setBillingAddressUrl, data, function (res) {
+            $.get(changeBillingAddressUrl, data, function (res) {
                 if (!res.error) {
                     $('#shipping_method_select').replaceWith(res.data)
                 } else {
@@ -187,7 +192,7 @@ var BuyNow = function ($)
 
             $.get(shippingMethodsUrl, data, function (res) {
                 if (!res.error) {
-                    $('#shipping_method_select').replaceWith(res.data)
+                    $('#shipping_method_select').replaceWith(res.data.html)
                 } else {
                     log(res.data);
                 }
@@ -395,8 +400,9 @@ var BuyNow = function ($)
                     registerLabel = buyNowOptions.registerLabel;
                     registerUrl = buyNowOptions.registerUrl;
                     onepageUrl = buyNowOptions.onepageUrl;
-                    setBillingAddressUrl = buyNowOptions.setBillingAddressUrl;
+                    changeBillingAddressUrl = buyNowOptions.changeBillingAddressUrl;
                     shippingMethodsUrl = buyNowOptions.shippingMethodsUrl;
+                    //could be rwd popup form
                     addToCartForm = (productAddToCartForm.form.id == 'product_addtocart_form') ? productAddToCartForm : new VarienForm('product_addtocart_form');
 
                     // on window resize run function
@@ -412,6 +418,7 @@ var BuyNow = function ($)
                     var $buynowButton = $('#buynow-button');
                     $buynowButton.click(buyNowButtonClick);
                     button = $buynowButton[0];
+                    
                 } else {
                     $('#buynow-button').hide();
                     log('buyNowOptions not set.');
