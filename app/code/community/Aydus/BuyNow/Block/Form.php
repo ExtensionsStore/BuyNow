@@ -81,72 +81,112 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
             return $this->__('Select billing agreement.');
         }
     }
-    
-    /**
-     * Return Sales Quote Address model (shipping address)
-     *
-     * @return Mage_Sales_Model_Quote_Address
-     */
-    public function getAddress()
-    {
-        if (is_null($this->_address)) {
-            if ($this->isCustomerLoggedIn()) {
-                $this->_address = $this->getQuote()->getShippingAddress();
-            } else {
-                $this->_address = Mage::getModel('sales/quote_address');
-            }
-        }
-
-        return $this->_address;
-    }    
-    
+        
     public function getAddressesHtmlSelect($type)
     {
-        if ($this->isCustomerLoggedIn()) {
-            $options = array();
-            $options[] = array('value'=>'', 'label' => $this->__('-- Select '.ucfirst($type).' Address --'));
-            
-            foreach ($this->getCustomer()->getAddresses() as $address) {
-                $options[] = array(
-                    'value' => $address->getId(),
-                    'label' => $address->format('oneline')
-                );
-            }
-
-            $addressId = $this->getAddress()->getCustomerAddressId();
-            if (empty($addressId)) {
-                if ($type=='billing') {
-                    $address = $this->getCustomer()->getPrimaryBillingAddress();
-                } else {
-                    $address = $this->getCustomer()->getPrimaryShippingAddress();
-                }
-                if ($address) {
-                    $addressId = $address->getId();
-                }
-            }
-
-            $select = $this->getLayout()->createBlock('core/html_select')
-                ->setName($type.'_address_id')
-                ->setId($type.'-address-select')
-                ->setClass('required-entry address-select')
-                ->setValue($addressId)
-                ->setOptions($options);
-
-            return $select->getHtml();
+        $quote = $this->getQuote();
+        $options = array();
+        $options[] = array('value'=>'', 'label' => $this->__('-- Select '.ucfirst($type).' Address --'));
+        
+        foreach ($this->getCustomer()->getAddresses() as $address) {
+            $options[] = array(
+                'value' => $address->getId(),
+                'label' => $address->format('oneline')
+            );
         }
-        return '';
+        
+        if ($type == 'billing'){
+            
+            $addressId = $this->getBillingAddressId();
+            
+        } else {
+            $addressId = $this->getShippingAddressId();
+            
+        }
+        
+        if (!$addressId){
+            if ($type=='billing') {
+                
+                if ($quote->getBillingAddress() && $quote->getBillingAddress()->getId()){
+                    
+                    $addressId = $quote->getBillingAddress()->getCustomerAddressId();
+                } else {
+                    $addressId = $this->getCustomer()->getPrimaryBillingAddress()->getId();
+                }
+                
+            } else {
+                if ($quote->getShippingAddress() && $quote->getShippingAddress()->getId()){
+                    $addressId = $quote->getShippingAddress()->getCustomerAddressId();
+                } else {
+                    $addressId = $this->getCustomer()->getPrimaryShippingAddress()->getId();
+                }           
+            }
+            
+        }
+
+        $select = $this->getLayout()->createBlock('core/html_select')
+            ->setName($type.'_address_id')
+            ->setId($type.'-address-select')
+            ->setClass('required-entry address-select')
+            ->setValue($addressId)
+            ->setOptions($options);
+
+        return $select->getHtml();
+        
     }    
         
     public function getShippingMethodsHtmlSelect(){
         
         $quote = $this->getQuote();
-        $store = $quote->getStore();
-        $address = $quote->getShippingAddress();
-        $address->collectShippingRates()->save();
+        $quoteId = $quote->getId();
         
-        $groups = $address->getGroupedAllShippingRates();
+        $customerAddress = Mage::getModel('customer/address');
+        $shippingAddressId = $this->getShippingAddressId();
+        
+        if (!$shippingAddressId){
+            
+            if ($quote->getShippingAddress() && $quote->getShippingAddress()->getId()) {
+                
+                $shippingAddressId = $quote->getShippingAddress()->getCustomerAddressId();
+                
+            } else {
+                
+                $shippingAddressId = $this->getCustomer()->getPrimaryShippingAddress()->getId();
+            }
+        }
+        
+        $customerAddress->load($shippingAddressId);
+        $customerAddressId = $customerAddress->getId();
+        
+        $quoteShippingAddress = Mage::getModel('sales/quote_address');
+        if ($quote->getShippingAddress() && $quote->getShippingAddress()->getId()) {
+        
+            $quoteShippingAddressId = $quote->getShippingAddress()->getId();
+            $quoteShippingAddress->load($quoteShippingAddressId);
+        }
+        
+        $addressData = array(
+                'customer_address_id' => $customerAddressId,
+                'firstname' => $customerAddress->getFirstname(), 
+                'lastname'=>$customerAddress->getLastname(), 
+                'street'=>trim(implode("\n", $customerAddress->getStreet())), 
+                'city'=>$customerAddress->getCity(), 
+                'region_id'=>$customerAddress->getRegionId(), 
+                'postcode'=>$customerAddress->getPostcode(), 
+                'country_id' => $customerAddress->getCountryId(), 
+                'telephone'=>$customerAddress->getTelephone(),
+        );
+        
+        $quoteShippingAddress->addData($addressData);
+        $quoteShippingAddress->setQuote($quote);
+        $quoteShippingAddress->collectShippingRates()->save();
+        $quote->setShippingAddress($quoteShippingAddress);
+        
+        $groups = $quoteShippingAddress->getGroupedAllShippingRates();
         
         $options[] = array('value'=>'', 'label' => $this->__('-- Select Shipping Method --'));
+        
+        $store = $quote->getStore();
         $taxHelper = $this->helper('tax');
         $includingTax = $taxHelper->displayShippingPriceIncludingTax();
                 
@@ -154,7 +194,7 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
             
             foreach ($rates as $rate ){
                 $options[$carrier]['label'] = $rate->getCarrierTitle();
-                $price =  $taxHelper->getShippingPrice($rate->getPrice(), $includingTax, $address);
+                $price =  $taxHelper->getShippingPrice($rate->getPrice(), $includingTax, $quoteAddress);
                 $value = $rate->getCode();
                 $label = $rate->getMethodTitle() . ' - ' . $store->convertPrice($price, true, false);
                 $options[$carrier]['value'][] = array('value'=> $value, 'label' => $label );

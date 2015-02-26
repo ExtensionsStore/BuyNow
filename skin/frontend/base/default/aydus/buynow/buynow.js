@@ -14,6 +14,8 @@ var BuyNow = function ($)
     var addToCartUrl;
     var registerUrl;
     var onepageUrl;
+    var shippingMethodsUrl;
+    var addToCartForm;
 
     //dialog options
     var dialog;
@@ -47,7 +49,7 @@ var BuyNow = function ($)
     //not logged in button click
     var login = function ()
     {
-        if (productAddToCartForm.validator.validate()) {
+        if (addToCartForm.validator.validate()) {
             varienForm = buyNowLoginForm;
             form = varienForm.form;
             options.buttons[registerLabel] = register;
@@ -104,11 +106,11 @@ var BuyNow = function ($)
     };
 
     //on button click, add item to cart if NOT already in cart
-    var addToCart = function (callback)
+    var addToCart = function ()
     {
         if (!addedtocart) {
 
-            if (productAddToCartForm.validator.validate()) {
+            if (addToCartForm.validator.validate()) {
 
                 dialog = $("#buynow-popup").dialog(options);
                 dialog.dialog("open");
@@ -122,16 +124,7 @@ var BuyNow = function ($)
                     if (!res.error) {
 
                         addedtocart = true;
-                        $('#buynow-checkout').html(res.data.checkout);
-
-                        $('#ba_agreement_id').change(function () {
-                            var method = $(this).children(":selected").attr("method");
-                            $('#payment-method').val(method);
-                        });
-
-                        updateHeader(res.data.header);
-
-                        callback();
+                        loadCheckout(res.data);
 
                     } else {
 
@@ -147,6 +140,40 @@ var BuyNow = function ($)
             callback();
         }
 
+    };
+    
+    var loadCheckout = function(data)
+    {
+        updateHeader(data.header);    	
+        
+        $('#buynow-checkout').html(data.checkout);
+
+        $('#ba_agreement_id').change(function () {
+            var method = $(this).children(":selected").attr("method");
+            $('#payment-method').val(method);
+        });
+        
+        $('#shipping-address-select').change(updateShippingMethods);
+
+        checkout();
+    };
+    
+    var updateShippingMethods = function(e)
+    {
+    	var shippingAddressId = $(this).val();
+    	shippingAddressId = parseInt(shippingAddressId);
+    	if (!isNaN(shippingAddressId) && shippingAddressId > 0){
+    		var data = { shipping_address_id : shippingAddressId };
+    		
+        	$.get(shippingMethodsUrl, data, function(res){
+        		if (!res.error){
+            		$('#shipping_method_select').replaceWith(res.data)
+        		} else {
+        			log(res.data);
+        		}
+        	});
+    		
+    	}
     };
 
     //logged in, checkout button click
@@ -348,6 +375,8 @@ var BuyNow = function ($)
                     registerLabel = buyNowOptions.registerLabel;
                     registerUrl = buyNowOptions.registerUrl;
                     onepageUrl = buyNowOptions.onepageUrl;
+                    shippingMethodsUrl = buyNowOptions.shippingMethodsUrl;
+                    addToCartForm = (productAddToCartForm.form.id =='product_addtocart_form') ? productAddToCartForm : new VarienForm('product_addtocart_form');
 
                     // on window resize run function
                     $(window).resize(function () {
@@ -363,6 +392,7 @@ var BuyNow = function ($)
                     $buynowButton.click(buyNowButtonClick);
                     button = $buynowButton[0];
                 } else {
+                	$('#buynow-button').hide();
                     log('buyNowOptions not set.');
                 }
 

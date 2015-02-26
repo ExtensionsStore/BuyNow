@@ -191,11 +191,35 @@ class Aydus_BuyNow_IndexController extends Mage_Core_Controller_Front_Action {
 
             $checkoutForm = $this->getLayout()->createBlock('aydus_buynow/form');
             $checkoutForm->setTemplate('aydus/buynow/checkout.phtml');
-
+            $checkoutForm->setNameInLayout('buynow.checkout');
+            $shippingMethods = $this->getLayout()->createBlock('aydus_buynow/form');
+            $shippingMethods->setTemplate('aydus/buynow/shipping/methods.phtml');
+            $checkoutForm->setChild('buynow.shipping_method',$shippingMethods);
+                        
             return $checkoutForm->toHtml();
         }
 
         return false;
+    }
+    
+    public function shippingMethodsAction()
+    {
+        $result = array();
+
+        $shippingMethods = $this->getLayout()->createBlock('aydus_buynow/form');
+        $shippingMethods->setTemplate('aydus/buynow/shipping/methods.phtml');
+        
+        $shippingAddressId = (int)$this->getRequest()->getParam('shipping_address_id');
+        if ($shippingAddressId){
+            $shippingMethods->setShippingAddressId($shippingAddressId);
+        }
+        
+        $result['error'] = false;
+        $result['data'] = $shippingMethods->toHtml();
+        
+        $this->getResponse()->clearHeaders()->setHeader('Content-type', 'application/json', true);
+        $this->getResponse()->setBody(json_encode($result));
+        
     }
 
     public function _getSuccess() {
