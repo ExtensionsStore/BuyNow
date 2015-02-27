@@ -11,16 +11,13 @@ var BuyNow = function ($)
     var loggedin;
     var addedtocart = false;
     var button;
-    var addToCartUrl;
-    var registerUrl;
-    var onepageUrl;
-    var changeBillingAddressUrl;
-    var shippingMethodsUrl;
+    
+    var options = {};
     var addToCartForm;
 
     //dialog options
     var dialog;
-    var options = {
+    var dialogOptions = {
         autoOpen: false,
         height: 'auto',
         width: 350,
@@ -40,10 +37,6 @@ var BuyNow = function ($)
     //form in dialog
     var varienForm;
     var form;
-    //dialog submit button labels
-    var loginLabel;
-    var checkoutLabel;
-    var registerLabel;
     //inline style for progress
     var progressBackground;
 
@@ -53,9 +46,9 @@ var BuyNow = function ($)
         if (addToCartForm.validator.validate()) {
             varienForm = buyNowLoginForm;
             form = varienForm.form;
-            options.buttons[registerLabel] = register;
-            options.buttons[loginLabel] = loginSubmit;
-            dialog = $("#buynow-login").dialog(options);
+            dialogOptions.buttons[options.registerLabel] = register;
+            dialogOptions.buttons[options.loginLabel] = loginSubmit;
+            dialog = $("#buynow-login").dialog(dialogOptions);
             dialog.dialog("open");
         }
     };
@@ -101,8 +94,8 @@ var BuyNow = function ($)
         updateHeader(data.header);
 
         dialog.dialog("close");
-        delete options.buttons[loginLabel];
-        delete options.buttons[registerLabel];
+        delete dialogOptions.buttons[options.loginLabel];
+        delete dialogOptions.buttons[options.registerLabel];
         addToCart(checkout);
     };
 
@@ -113,13 +106,14 @@ var BuyNow = function ($)
 
             if (addToCartForm.validator.validate()) {
 
-                dialog = $("#buynow-popup").dialog(options);
+                dialog = $("#buynow-popup").dialog(dialogOptions);
                 dialog.dialog("open");
 
                 var $form = $('#product_addtocart_form');
                 var data = $form.serialize();
+                var url = options.addToCartUrl;
 
-                $.post(addToCartUrl, data, function (res) {
+                $.post(url, data, function (res) {
                     dialog.dialog("close");
 
                     if (!res.error) {
@@ -159,13 +153,14 @@ var BuyNow = function ($)
             $('#payment-method').val(method);
         });
 
-        $('#billing-address-select').change(setBillingAddress);
+        $('#billing-address-select').change(changeBillingAddress);
         $('#shipping-address-select').change(updateShippingMethods);
+        $('#shipping_method_select').change(changeShippingMethod);
 
         checkout();
     };
     
-    var setBillingAddress = function(e)
+    var changeBillingAddress = function(e)
     {
         var billingAddressId = $(this).val();
         billingAddressId = parseInt(billingAddressId);
@@ -189,10 +184,29 @@ var BuyNow = function ($)
         shippingAddressId = parseInt(shippingAddressId);
         if (!isNaN(shippingAddressId) && shippingAddressId > 0) {
             var data = {shipping_address_id: shippingAddressId};
-
-            $.get(shippingMethodsUrl, data, function (res) {
+            var url = options.shippingMethodsUrl;
+            $.get(url, data, function (res) {
                 if (!res.error) {
                     $('#shipping_method_select').replaceWith(res.data.html)
+                    $('#shipping_method_select').change(changeShippingMethod);                    
+                } else {
+                    log(res.data);
+                }
+            });
+
+        }
+    };
+    
+    var changeShippingMethod = function (e)
+    {
+        var shippingMethod = $(this).val();
+
+        if (shippingMethod.length > 0) {
+            var data = {shipping_method: shippingMethod};
+            var url = options.changeShippingMethodUrl;
+            $.get(url, data, function (res) {
+                if (!res.error) {
+
                 } else {
                     log(res.data);
                 }
@@ -210,8 +224,8 @@ var BuyNow = function ($)
             form = varienForm.form;
 
             checkoutLabel = $('#buynow-checkout-button').attr('title');
-            options.buttons[checkoutLabel] = checkoutSubmit;
-            dialog = $("#buynow-checkout").dialog(options);
+            dialogOptions.buttons[options.checkoutLabel] = checkoutSubmit;
+            dialog = $("#buynow-checkout").dialog(dialogOptions);
             dialog.dialog("open");
 
         } else {
@@ -251,7 +265,7 @@ var BuyNow = function ($)
     var checkoutSuccess = function (successHtml)
     {
         $('#buynow-success').html(successHtml);
-        dialog = $("#buynow-success").dialog(options);
+        dialog = $("#buynow-success").dialog(dialogOptions);
         dialog.dialog("open");
     };
 
@@ -392,16 +406,10 @@ var BuyNow = function ($)
                 if (buyNowOptions) {
 
                     loggedin = buyNowOptions.loggedIn;
+                    options = buyNowOptions;
 
-                    checkoutLabel = buyNowOptions.checkoutLabel;
-                    loginLabel = buyNowOptions.loginLabel;
                     progressBackground = buyNowOptions.progressBackground;
-                    addToCartUrl = buyNowOptions.addToCartUrl;
-                    registerLabel = buyNowOptions.registerLabel;
-                    registerUrl = buyNowOptions.registerUrl;
-                    onepageUrl = buyNowOptions.onepageUrl;
-                    changeBillingAddressUrl = buyNowOptions.changeBillingAddressUrl;
-                    shippingMethodsUrl = buyNowOptions.shippingMethodsUrl;
+                    
                     //could be rwd popup form
                     addToCartForm = (productAddToCartForm.form.id == 'product_addtocart_form') ? productAddToCartForm : new VarienForm('product_addtocart_form');
 

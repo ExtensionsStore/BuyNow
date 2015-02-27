@@ -16,20 +16,28 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
         $result = array('error'=>true);
         
         $session = Mage::getSingleton('customer/session');
-        
-        $websiteId = Mage::app()->getStore()->getWebsiteId();
-        $customer = Mage::getModel('customer/customer')->setWebsiteId($websiteId);
-            
-        try {
-            
-            $customer->authenticate($username, $password);
-
-            $session->setCustomerAsLoggedIn($customer);
-            $session->renewSession();
+        if ($session->isLoggedIn()){
             
             $result['error'] = false;
             $result['data']['message'] = 'Customer is logged in.';
             
+            return $result;
+        }
+            
+        try {
+            
+            $result = $this->authenticate($username, $password);
+            
+            if ($result['error'] === false){
+                
+                $customer = $result['data']['customer'];
+                $session->setCustomerAsLoggedIn($customer);
+                $session->renewSession();
+                
+                $result['error'] = false;
+                $result['data']['message'] = 'Customer is logged in.';
+                
+            }
 
         } catch (Exception $ex) {
             
@@ -40,60 +48,86 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
         return $result;
     }
     
+    public function authenticate($email, $password)
+    {
+        $websiteId = Mage::app()->getStore()->getWebsiteId();
+        $customer = Mage::getModel('customer/customer')->setWebsiteId($websiteId);
+    
+        try {
+    
+            $customer->authenticate($email, $password);
+            
+            $result['error'] = false;
+            $result['data']['customer'] = $customer;
+            $result['data']['email'] = $customer->getEmail();
+            $result['data']['message'] = 'Customer is logged in.';
+    
+        } catch (Exception $ex) {
+    
+            $result['error'] = true;
+            $result['data'] = $ex->getMessage();
+        }
+    
+        return $result;
+    }
+    
     public function addToCart($params)
     {
         $result = array('error'=>true);
                 
-        if (isset($params['qty'])) {
-            $filter = new Zend_Filter_LocalizedToNormalized(
-                    array('locale' => Mage::app()->getLocale()->getLocaleCode())
-            );
-            $params['qty'] = $filter->filter($params['qty']);
-        }
-        
-        $productId = (int) $params['product'];
-        
-        $product = Mage::getModel('catalog/product')
-        ->setStoreId(Mage::app()->getStore()->getId())
-        ->load($productId);
-        
-        if ($product && $product->getId()) {
-        
-            $cart = Mage::getSingleton('checkout/cart');
-            $productIds = $cart->getProductIds();
-        
-            if (!in_array($productId, $productIds)){
-        
-                $cart->addProduct($product, $params);
-                
-                $related = $params['related_product'];
-                if (!empty($related)) {
-                    $cart->addProductsByIds(explode(',', $related));
-                }
-        
-                $cart->save();
-        
-                Mage::getSingleton('checkout/session')->setCartWasUpdated(true);
-        
-                Mage::dispatchEvent('checkout_cart_add_product_complete',
-                array('product' => $product, 'request' => Mage::app()->getRequest(), 'response' => Mage::app()->getResponse())
+        try {
+            
+            if (isset($params['qty'])) {
+                $filter = new Zend_Filter_LocalizedToNormalized(
+                        array('locale' => Mage::app()->getLocale()->getLocaleCode())
                 );
-                
-                $result['error'] = false;
-                $result['data']['message'] = 'Product was added to cart.';
-                $result['data']['checkout'] = true;
-                
-            } else {
-        
-                $result['error'] = false;
-                $result['data']['message'] = 'Product is already in the cart.';
-                $result['data']['checkout'] = false;
+                $params['qty'] = $filter->filter($params['qty']);
             }
-        
-        } else {
-        
+            
+            $productId = (int) $params['product'];
+            
+            $product = Mage::getModel('catalog/product')
+            ->setStoreId(Mage::app()->getStore()->getId())
+            ->load($productId);
+            
+            if ($product && $product->getId()) {
+            
+                $cart = Mage::getSingleton('checkout/cart');
+                $productIds = $cart->getProductIds();
+            
+                if (!in_array($productId, $productIds)){
+            
+                    $cart->addProduct($product, $params);
+            
+                    $related = $params['related_product'];
+                    if (!empty($related)) {
+                        $cart->addProductsByIds(explode(',', $related));
+                    }
+            
+                    $cart->save();
+            
+                    $result['error'] = false;
+                    $result['data']['message'] = 'Product was added to cart.';
+                    $result['data']['checkout'] = true;
+            
+                } else {
+            
+                    $result['error'] = false;
+                    $result['data']['message'] = 'Product is already in the cart.';
+                    $result['data']['checkout'] = false;
+                }
+            
+            } else {
+            
+                $result['error'] = true;
+                $result['data'] = 'Product could not be loaded.';
+            }      
+                  
+        } catch (Exception $ex){
+            
             $result['error'] = true;
-            $result['data'] = 'Product could not be loaded.';
+            $result['data'] = $ex->getMessage();
+            
         }
         
         return $result;
@@ -184,6 +218,27 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
         return $result;
     }    
     
+    public function setShippingMethod($shippingMethod)
+    {
+        $result = array('error'=>true);
+        
+        try {
+            $quote = $this->getQuote();
+            $quote->getShippingAddress()->setShippingMethod($shippingMethod);
+            $quote->save();
+        
+            $result['error'] = false;
+            $result['data']['message'] = 'Shipping method has been updated.';
+        
+        } catch (Exception $ex) {
+        
+            $result['error'] = true;
+            $result['data'] = $e->getMessage();
+        }
+        
+        return $result;        
+    }
+    
     public function checkout($data)
     {
         $result = array('error'=>true);
@@ -199,20 +254,25 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
             $billingAddressId = ($data['billing_address_id']) ? $data['billing_address_id'] : $customer->getDefaultBilling();
             
             //set billing addresses
-            $customerAddress = Mage::getModel('customer/address')->load($billingAddressId);
+            $customerBillingAddress = Mage::getModel('customer/address')->load($billingAddressId);
             $billingAddress = $quote->getBillingAddress();
-            if (!$billingAddress->getId()){
-                $billingAddress = Mage::getModel('sales/quote_address');
+            if (!$billingAddress->getCustomerAddressId()){
+                $billingAddress->setQuote($quote);
+                $quote->setBillingAddress($billingAddress);
             }
-            $billingAddress->setQuote($quote);
-            $billingAddress->setData($customerAddress->getData());
-            $billingAddress->save();
-            $quote->setBillingAddress($billingAddress);
-            
+            $billingAddress->importCustomerAddress($customerBillingAddress);
+                        
             //set shipping addresses
             if (!$quote->isVirtual()){
-                $shippingAddress = Mage::getModel('sales/quote_address')->load($customer->getDefaultShipping());
-                $shippingAddress->setQuote($quote);
+                
+                $shippingAddressId = ($data['shipping_address_id']) ? $data['shipping_address_id'] : $customer->getDefaultShipping();
+                $customerShippingAddress = Mage::getModel('customer/address')->load($shippingAddressId);
+                $shippingAddress = $quote->getShippingAddress();
+                if (!$shippingAddress->getCustomerAddressId()){
+                    $shippingAddress->setQuote($quote);
+                    $quote->setShippingAddress($shippingAddress);                
+                }
+                $shippingAddress->importCustomerAddress($customerShippingAddress);
 
                 //set shipping method
                 $quoteItems = $quote->getAllVisibleItems();
@@ -224,7 +284,6 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
                 $shippingMethod = $data['shipping_method'];
                 $shippingAddress->setShippingMethod($shippingMethod);
                 $shippingAddress->setCollectShippingRates(true);
-                $shippingAddress->save();
                 $quote->setShippingAddress($shippingAddress);                
             }
 
@@ -239,7 +298,6 @@ class Aydus_BuyNow_Model_Buynow extends Mage_Core_Model_Abstract
             $payment = $quote->getPayment();
             $payment->importData($paymentData);
             $payment->setQuote($quote);
-            $payment->save();
             $quote->setPayment($payment);
             
             $quote->reserveOrderId();

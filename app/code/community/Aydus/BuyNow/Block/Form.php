@@ -130,6 +130,10 @@ class Aydus_BuyNow_Block_Form extends Mage_Checkout_Block_Onepage_Abstract
         $quoteId = $quote->getId();
         
         $shippingAddress = $quote->getShippingAddress();
+        if (!$shippingAddress->getCustomerAddressId()){
+            $customerAddress = $this->getCustomer()->getPrimaryShippingAddress();
+            $shippingAddress->importCustomerAddress($customerAddress);
+        }
         $shippingAddress->setCollectShippingRates(true)->save();
         $shippingAddress->collectShippingRates();
         

@@ -15,31 +15,39 @@ class Aydus_BuyNow_IndexController extends Mage_Core_Controller_Front_Action {
 
     public function loginAction() {
         $result = array();
+        
+        if ($this->_validateFormKey()) {
+            
+            $request = $this->getRequest();
+            
+            $login = $request->getParam('login');
+            
+            if ($login && $login['username'] && $login['password']) {
+            
+                $username = $login['username'];
+                $password = $login['password'];
+            
+                $result = $this->_getModel()->login($username, $password);
+            
+                if (!$result['error']) {
+            
+                    $header = $this->_getHeader();
+                    $checkoutFormHtml = $this->_getCheckoutForm();
+            
+                    $result['data']['header'] = $header;
+                    $result['data']['checkout'] = $checkoutFormHtml;
+                }
+            } else {
+            
+                $result['error'] = true;
+                $result['data'] = Mage::helper('aydus_buynow')->__('Parameters missing.');
+            }        
 
-        $request = $this->getRequest();
-
-        $login = $request->getParam('login');
-
-        if ($login && $login['username'] && $login['password']) {
-
-            $username = $login['username'];
-            $password = $login['password'];
-
-            $result = $this->_getModel()->login($username, $password);
-
-            if (!$result['error']) {
-
-                $header = $this->_getHeader();
-                $checkoutFormHtml = $this->_getCheckoutForm();
-
-                $result['data']['header'] = $header;
-                $result['data']['checkout'] = $checkoutFormHtml;
-            }
         } else {
-
+        
             $result['error'] = true;
-            $result['data'] = Mage::helper('aydus_buynow')->__('Parameters missing.');
-        }
+            $result['data'] = 'Invalid form';
+        }        
 
         $this->getResponse()->clearHeaders()->setHeader('Content-type', 'application/json', true);
         $this->getResponse()->setBody(json_encode($result));
@@ -58,6 +66,16 @@ class Aydus_BuyNow_IndexController extends Mage_Core_Controller_Front_Action {
                 $result = $this->_getModel()->addToCart($params);
 
                 if (!$result['error']) {
+                    
+                    Mage::getSingleton('checkout/session')->setCartWasUpdated(true);
+                    $productId = $params['product'];
+                    $product = Mage::getModel('catalog/product')
+                    ->setStoreId(Mage::app()->getStore()->getId())
+                    ->load($productId);
+                    
+                    Mage::dispatchEvent('checkout_cart_add_product_complete',
+                    array('product' => $product, 'request' => $this->getRequest(), 'response' => $this->getResponse())
+                    );                    
 
                     $header = $this->_getHeader();
                     $checkoutFormHtml = $this->_getCheckoutForm();
@@ -257,6 +275,26 @@ class Aydus_BuyNow_IndexController extends Mage_Core_Controller_Front_Action {
         $this->getResponse()->setBody(json_encode($result));
         
     }
+    
+    public function changeShippingMethodAction()
+    {
+        $result = array();
+    
+        $shippingMethod = $this->getRequest()->getParam('shipping_method');
+    
+        if ($shippingMethod){
+    
+            $result = $this->_getModel()->setShippingMethod($shippingMethod);
+    
+        } else {
+    
+            $result['error'] = true;
+            $result['data'] = 'Nothing to change.';
+        }
+    
+        $this->getResponse()->clearHeaders()->setHeader('Content-type', 'application/json', true);
+        $this->getResponse()->setBody(json_encode($result));
+    }    
 
     public function _getSuccess() {
         $success = $this->getLayout()->createBlock('checkout/onepage_success');
