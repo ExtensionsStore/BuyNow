@@ -8,22 +8,23 @@
  * @author     Aydus Consulting <davidt@aydus.com>
  */
 ?>
-<div id="buynow-popup" style="background: white url(<?php echo $this->getSkinUrl('aydus/buynow/buynow-progress.gif') ?>) no-repeat center center;">
-
-    <div id="buynow-login" class="dialog">
+<div id="buynow-popup">
+    
+    <div class="buynow-bg"></div>
+    
+    <div class="buynow-container">
+        <div class="buynow-header">
+        <h3>Buy Now</h3>
+        <a href="#" class="buynow-close" title="Close"></a>
+        </div>     
+        <div id="buynow-content">
         <?php if (!Mage::getSingleton('customer/session')->isLoggedIn()): ?>
         <?php echo $this->getChildHtml('buynow.login') ?>
-        <?php endif; ?>
-    </div>
-    
-    <div id="buynow-checkout" class="dialog">
-        <?php if (Mage::getSingleton('customer/session')->isLoggedIn() && $this->hasBillingAgreement()): ?>
+        <?php elseif (Mage::getSingleton('customer/session')->isLoggedIn() && $this->hasBillingAgreement()): ?>
         <?php echo $this->getChildHtml('buynow.checkout') ?>
         <?php endif; ?>
-    </div>
-
-    <div id="buynow-success" class="dialog">
+        </div>
         
-    </div>
+    </div>    
     
 </div>

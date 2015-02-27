@@ -11,30 +11,10 @@ var BuyNow = function ($)
     var loggedin;
     var addedtocart = false;
     var button;
-    
+
     var options = {};
     var addToCartForm;
 
-    //dialog options
-    var dialog;
-    var dialogOptions = {
-        autoOpen: false,
-        height: 'auto',
-        width: 350,
-        modal: true,
-        fluid: true,
-        buttons: {
-            Close: function () {
-                dialog.dialog("close");
-            }
-        },
-        close: function () {
-        },
-        resize: function () {
-            fluidDialog();
-        }
-    };
-    //form in dialog
     var varienForm;
     var form;
     //inline style for progress
@@ -46,23 +26,23 @@ var BuyNow = function ($)
         if (addToCartForm.validator.validate()) {
             varienForm = buyNowLoginForm;
             form = varienForm.form;
-            dialogOptions.buttons[options.registerLabel] = register;
-            dialogOptions.buttons[options.loginLabel] = loginSubmit;
-            dialog = $("#buynow-login").dialog(dialogOptions);
-            dialog.dialog("open");
+            $('#buynow-login-button').click(loginSubmit);
+            showPopup();
         }
     };
 
     var register = function ()
     {
-        window.location.href = registerUrl;
+        window.location.href = options.registerUrl;
     }
 
-    var loginSubmit = function ()
+    var loginSubmit = function (e)
     {
+        e.preventDefault();
+
         if (varienForm.validator.validate()) {
 
-            progress('#buynow-login .content', true);
+            progress(true);
             var url = $(form).attr('action');
 
             var data = $(form).serialize();
@@ -72,12 +52,10 @@ var BuyNow = function ($)
                 if (!res.error) {
 
                     loginSuccess(res.data);
-                    progress('#buynow-login .content', false);
 
                 } else {
 
-                    $('#buynow-login-form .messages').show().find('span').text(res.data);
-                    progress('#buynow-login .content', false);
+                    $('#buynow-content .messages').show().find('span').text(res.data);
 
                 }
 
@@ -89,37 +67,35 @@ var BuyNow = function ($)
 
     var loginSuccess = function (data)
     {
-        $('#buynow-checkout').html(data.checkout);
         loggedin = true;
-        updateHeader(data.header);
+        loadCheckout(data);
 
-        dialog.dialog("close");
-        delete dialogOptions.buttons[options.loginLabel];
-        delete dialogOptions.buttons[options.registerLabel];
-        addToCart(checkout);
+        addToCart();
     };
 
     //on button click, add item to cart if NOT already in cart
     var addToCart = function ()
     {
+        showPopup(true);
+        progress(true);
+
         if (!addedtocart) {
 
             if (addToCartForm.validator.validate()) {
-
-                dialog = $("#buynow-popup").dialog(dialogOptions);
-                dialog.dialog("open");
 
                 var $form = $('#product_addtocart_form');
                 var data = $form.serialize();
                 var url = options.addToCartUrl;
 
                 $.post(url, data, function (res) {
-                    dialog.dialog("close");
+
+                    progress(false);
 
                     if (!res.error) {
 
                         addedtocart = true;
                         loadCheckout(res.data);
+                        checkout();
 
                     } else {
 
@@ -128,11 +104,14 @@ var BuyNow = function ($)
 
                 });
 
+            } else {
+
+                showPopup(false);
             }
 
         } else {
 
-            callback();
+            checkout();
         }
 
     };
@@ -141,33 +120,35 @@ var BuyNow = function ($)
     {
         updateHeader(data.header);
 
-        if (data.checkout){
-            $('#buynow-checkout').html(data.checkout);
-        }
-        
-        var method = $('#ba_agreement_id').children(":selected").attr("method");
-        $('#payment-method').val(method);
-        
-        $('#ba_agreement_id').change(function () {
-            var method = $(this).children(":selected").attr("method");
+        if (data.checkout) {
+            $('#buynow-content').html(data.checkout);
+            $('#buynow-checkout-button').click(checkoutSubmit);
+            var method = $('#ba_agreement_id').children(":selected").attr("method");
             $('#payment-method').val(method);
-        });
 
-        $('#billing-address-select').change(changeBillingAddress);
-        $('#shipping-address-select').change(updateShippingMethods);
-        $('#shipping_method_select').change(changeShippingMethod);
+            $('#ba_agreement_id').change(function () {
+                var method = $(this).children(":selected").attr("method");
+                $('#payment-method').val(method);
+            });
 
-        checkout();
+            $('#billing-address-select').change(changeBillingAddress);
+            $('#shipping-address-select').change(updateShippingMethods);
+            $('#shipping_method_select').change(changeShippingMethod);
+
+        }
+
     };
-    
-    var changeBillingAddress = function(e)
+
+    var changeBillingAddress = function (e)
     {
         var billingAddressId = $(this).val();
         billingAddressId = parseInt(billingAddressId);
         if (!isNaN(billingAddressId) && billingAddressId > 0) {
+            progress(true);
             var data = {billing_address_id: billingAddressId};
-
-            $.get(changeBillingAddressUrl, data, function (res) {
+            var url = options.changeBillingAddressUrl;
+            $.get(url, data, function (res) {
+                progress(false);
                 if (!res.error) {
                     $('#shipping_method_select').replaceWith(res.data)
                 } else {
@@ -175,7 +156,7 @@ var BuyNow = function ($)
                 }
             });
 
-        }        
+        }
     }
 
     var updateShippingMethods = function (e)
@@ -183,12 +164,14 @@ var BuyNow = function ($)
         var shippingAddressId = $(this).val();
         shippingAddressId = parseInt(shippingAddressId);
         if (!isNaN(shippingAddressId) && shippingAddressId > 0) {
+            progress(true);
             var data = {shipping_address_id: shippingAddressId};
             var url = options.shippingMethodsUrl;
             $.get(url, data, function (res) {
+                progress(false);
                 if (!res.error) {
                     $('#shipping_method_select').replaceWith(res.data.html)
-                    $('#shipping_method_select').change(changeShippingMethod);                    
+                    $('#shipping_method_select').change(changeShippingMethod);
                 } else {
                     log(res.data);
                 }
@@ -196,15 +179,17 @@ var BuyNow = function ($)
 
         }
     };
-    
+
     var changeShippingMethod = function (e)
     {
         var shippingMethod = $(this).val();
 
         if (shippingMethod.length > 0) {
+            progress(true);
             var data = {shipping_method: shippingMethod};
             var url = options.changeShippingMethodUrl;
             $.get(url, data, function (res) {
+                progress(false);
                 if (!res.error) {
 
                 } else {
@@ -222,34 +207,32 @@ var BuyNow = function ($)
 
             varienForm = buyNowCheckoutForm;
             form = varienForm.form;
-
-            checkoutLabel = $('#buynow-checkout-button').attr('title');
-            dialogOptions.buttons[options.checkoutLabel] = checkoutSubmit;
-            dialog = $("#buynow-checkout").dialog(dialogOptions);
-            dialog.dialog("open");
+            showPopup(true);
+            progress(false);
 
         } else {
 
-            window.location.href = onepageUrl;
+            window.location.href = options.onepageUrl;
         }
     };
 
-    var checkoutSubmit = function ()
+    var checkoutSubmit = function (e)
     {
+        e.preventDefault();
         if (varienForm.validator.validate()) {
 
-            progress('#buynow-checkout .content', true);
+            progress(true);
             var url = $(form).attr('action');
 
             var data = $(form).serialize();
 
             $.post(url, data, function (res) {
 
-                progress('#buynow-checkout .content', false);
+                progress(false);
                 if (!res.error) {
 
                     updateHeader(res.data.header);
-                    checkoutSuccess(res.data.success);
+                    $('#buynow-content').html(res.data.success);
 
                 } else {
 
@@ -262,14 +245,7 @@ var BuyNow = function ($)
 
     };
 
-    var checkoutSuccess = function (successHtml)
-    {
-        $('#buynow-success').html(successHtml);
-        dialog = $("#buynow-success").dialog(dialogOptions);
-        dialog.dialog("open");
-    };
-
-    //on button click, add to cart if not already in cart, then open dialog
+    //on button click, add to cart if not already in cart
     var buyNowButtonClick = function (e)
     {
         if (!loggedin) {
@@ -321,10 +297,20 @@ var BuyNow = function ($)
         }
     };
 
-    //progress background
-    var progress = function (selector, show, position)
+    var showPopup = function (show)
     {
-        var $container = $(selector);
+        if (show) {
+            $('#buynow-popup').show();
+
+        } else {
+            $('#buynow-popup').hide();
+        }
+    };
+
+    //progress background
+    var progress = function (show, position)
+    {
+        var $container = $('#buynow-content');
 
         if (show) {
 
@@ -361,33 +347,6 @@ var BuyNow = function ($)
 
     };
 
-    //@see http://stackoverflow.com/questions/16471890/responsive-jquery-ui-dialog-and-a-fix-for-maxwidth-bug
-    var fluidDialog = function ()
-    {
-        var $visible = $(".ui-dialog:visible");
-        // each open dialog
-        $visible.each(function () {
-            var $this = $(this);
-            var dialog = $this.find(".ui-dialog-content").data("ui-dialog");
-            // if fluid option == true
-            if (dialog.options.fluid) {
-                var wWidth = $(window).width();
-                // check window width against dialog width
-                if (wWidth < (parseInt(dialog.options.maxWidth) + 50)) {
-                    // keep dialog from filling entire screen
-                    $this.css("max-width", "90%");
-                } else {
-                    // fix maxWidth bug
-                    $this.css("max-width", dialog.options.maxWidth + "px");
-                }
-                //reposition dialog
-                dialog.option("position", dialog.options.position);
-            }
-
-        });
-
-    };
-
     var log = function (message)
     {
         if (typeof console == 'object') {
@@ -409,24 +368,19 @@ var BuyNow = function ($)
                     options = buyNowOptions;
 
                     progressBackground = buyNowOptions.progressBackground;
-                    
+
                     //could be rwd popup form
                     addToCartForm = (productAddToCartForm.form.id == 'product_addtocart_form') ? productAddToCartForm : new VarienForm('product_addtocart_form');
-
-                    // on window resize run function
-                    $(window).resize(function () {
-                        fluidDialog();
-                    });
-
-                    // catch dialog if opened within a viewport smaller than the dialog width
-                    $(document).on("dialogopen", ".ui-dialog", function (event, ui) {
-                        fluidDialog();
-                    });
 
                     var $buynowButton = $('#buynow-button');
                     $buynowButton.click(buyNowButtonClick);
                     button = $buynowButton[0];
-                    
+
+                    $('.buynow-close').click(function (e) {
+                        e.preventDefault();
+                        $('#buynow-popup').hide();
+                    });
+
                 } else {
                     $('#buynow-button').hide();
                     log('buyNowOptions not set.');
@@ -444,17 +398,10 @@ var BuyNow = function ($)
 if (!window.jQuery) {
 
     document.write('<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js">\x3C/script><script>jQuery.noConflict(); var buyNow = BuyNow(jQuery); buyNow.init();</script>');
-    document.write('<link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/themes/smoothness/jquery-ui.css" />');
-    document.write('<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js">\x3C/script>');
 
 } else {
 
     var buyNow = BuyNow(jQuery);
     buyNow.init();
-
-    if (!jQuery.ui) {
-        document.write('<link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/themes/smoothness/jquery-ui.css" />');
-        document.write('<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js">\x3C/script>');
-    }
 }
 
