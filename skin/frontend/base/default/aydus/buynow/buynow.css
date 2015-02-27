@@ -6,8 +6,16 @@
  * @author     Aydus Consulting <davidt@aydus.com>
  */
 
-#buynow-login, #buynow-checkout {
-    display: none;
+#buynow-button {
+    background:url(buynow.png) no-repeat;
+    width: 171px;
+    height: 34px;
+    cursor:pointer;
+    border:none;
+}
+
+#buynow-button span {
+	visibility: hidden;
 }
 
 #buynow-popup {

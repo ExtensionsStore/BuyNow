@@ -41,5 +41,8 @@
 <script>
 //<![CDATA[
     var buyNowLoginForm = new VarienForm('buynow-login-form', true);
+    new Event.observe("buynow-login-form", "submit", function(e){
+	    e.stop();
+	    });        
 //]]>
 </script>

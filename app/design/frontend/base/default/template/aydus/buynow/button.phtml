@@ -9,7 +9,7 @@
  */
 ?>
 
-<button type="button" title="Buy Now" id="buynow-button" class="button btn-cart" onclick="">
+<button type="button" title="Buy Now" id="buynow-button" class="" onclick="">
     <span><span>Buy Now</span></span>
 </button>
 
@@ -28,5 +28,9 @@
         changeShippingMethodUrl : '<?php echo $this->getUrl('buynow/index/changeshippingmethod') ?>',
         progressBackground : "background: white url(<?php echo $this->getSkinUrl('aydus/buynow/buynow-progress.gif') ?>) no-repeat center center;"
     };
+
+    new Event.observe("buynow-checkout-form", "submit", function(e){
+	    e.stop();
+	    });        
 
 </script>

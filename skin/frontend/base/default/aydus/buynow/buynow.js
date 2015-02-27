@@ -23,12 +23,24 @@ var BuyNow = function ($)
     //not logged in button click
     var login = function ()
     {
-        if (addToCartForm.validator.validate()) {
+        if (validateAddToCartForm()) {
+        	
+        	
             varienForm = buyNowLoginForm;
             form = varienForm.form;
             $('#buynow-login-button').click(loginSubmit);
-            showPopup();
+            showPopup(true);
         }
+    };
+    
+    var validateAddToCartForm = function()
+    {
+        if (addToCartForm.validator.validate()){
+        	
+        	return true;
+        } 
+        
+        return false;
     };
 
     var register = function ()
@@ -68,7 +80,7 @@ var BuyNow = function ($)
     var loginSuccess = function (data)
     {
         loggedin = true;
-        loadCheckout(data);
+        updateCheckout(data);
 
         addToCart();
     };
@@ -81,7 +93,7 @@ var BuyNow = function ($)
 
         if (!addedtocart) {
 
-            if (addToCartForm.validator.validate()) {
+            if (validateAddToCartForm()) {
 
                 var $form = $('#product_addtocart_form');
                 var data = $form.serialize();
@@ -94,7 +106,8 @@ var BuyNow = function ($)
                     if (!res.error) {
 
                         addedtocart = true;
-                        loadCheckout(res.data);
+                        updateCheckout(res.data);
+                    	loadCheckout();
                         checkout();
 
                     } else {
@@ -110,33 +123,38 @@ var BuyNow = function ($)
             }
 
         } else {
-
+        	
+        	loadCheckout();
             checkout();
         }
 
     };
 
-    var loadCheckout = function (data)
+    var updateCheckout = function (data)
     {
         updateHeader(data.header);
 
         if (data.checkout) {
             $('#buynow-content').html(data.checkout);
-            $('#buynow-checkout-button').click(checkoutSubmit);
-            var method = $('#ba_agreement_id').children(":selected").attr("method");
-            $('#payment-method').val(method);
-
-            $('#ba_agreement_id').change(function () {
-                var method = $(this).children(":selected").attr("method");
-                $('#payment-method').val(method);
-            });
-
-            $('#billing-address-select').change(changeBillingAddress);
-            $('#shipping-address-select').change(updateShippingMethods);
-            $('#shipping_method_select').change(changeShippingMethod);
-
         }
 
+    };
+    
+    var loadCheckout = function()
+    {
+        $('#buynow-checkout-button').click(checkoutSubmit);
+        
+        var method = $('#ba_agreement_id').children(":selected").attr("method");
+        $('#payment-method').val(method);
+
+        $('#ba_agreement_id').change(function () {
+            var method = $(this).children(":selected").attr("method");
+            $('#payment-method').val(method);
+        });
+
+        $('#billing-address-select').change(changeBillingAddress);
+        $('#shipping-address-select').change(updateShippingMethods);
+        $('#shipping_method_select').change(changeShippingMethod);    	
     };
 
     var changeBillingAddress = function (e)
@@ -150,7 +168,7 @@ var BuyNow = function ($)
             $.get(url, data, function (res) {
                 progress(false);
                 if (!res.error) {
-                    $('#shipping_method_select').replaceWith(res.data)
+
                 } else {
                     log(res.data);
                 }
@@ -248,6 +266,8 @@ var BuyNow = function ($)
     //on button click, add to cart if not already in cart
     var buyNowButtonClick = function (e)
     {
+    	e.preventDefault();
+    	
         if (!loggedin) {
             login();
         } else {

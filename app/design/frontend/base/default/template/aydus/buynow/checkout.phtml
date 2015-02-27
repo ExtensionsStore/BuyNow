@@ -56,5 +56,8 @@
 <script>
 //<![CDATA[
     var buyNowCheckoutForm = new VarienForm('buynow-checkout-form', true);
+    new Event.observe("buynow-checkout-form", "submit", function(e){
+	    e.stop();
+	    });        
 //]]>
 </script>
