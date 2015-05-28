@@ -1,0 +1,18 @@
+{
+    "name": "aydus/buynow",
+    "license": "GPL-3.0",
+    "type": "magento-module",
+    "description": "Adds a Buy Now button to your product or landing page. ",
+    "homepage": "https://github.com/aydus/BuyNow.git",
+    "require": {
+        "php": ">=5.3",
+        "magento-hackathon/magento-composer-installer": "*"
+    },
+    "authors": [
+        {
+            "name": "David Tay",
+            "email": "davidt@aydus.com",
+            "role": "Author/Maintainer"
+        }
+    ]
+}
